@@ -133,7 +133,15 @@ function Creator() {
         })
         .select("id")
         .single();
-      if (error) throw error;
+      if (error) {
+        // 23505 = unique_violation
+        if ((error as { code?: string }).code === "23505") {
+          throw new Error(
+            `Document number ${docNumber} is already in use. Generating a new one—please try again.`,
+          );
+        }
+        throw error;
+      }
       return data.id as string;
     },
     onSuccess: (id) => {
@@ -142,7 +150,13 @@ function Creator() {
       if (d) downloadPdf(d);
       navigate({ to: "/documents/$id", params: { id } });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
+    onError: (e) => {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+      // Refresh number on collision so a retry succeeds
+      if (e instanceof Error && e.message.includes("already in use")) {
+        generateDocNumber(docType).then(setDocNumber).catch(() => {});
+      }
+    },
   });
 
   const handlePreview = async () => {

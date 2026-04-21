@@ -1,0 +1,1 @@
+ALTER TABLE public.documents ADD CONSTRAINT documents_user_doc_number_unique UNIQUE (user_id, doc_number);
