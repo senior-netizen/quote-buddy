@@ -14,6 +14,8 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
+import { Route as DocumentsNewRouteImport } from './routes/documents.new'
+import { Route as DocumentsIdRouteImport } from './routes/documents.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -40,12 +42,24 @@ const DocumentsIndexRoute = DocumentsIndexRouteImport.update({
   path: '/documents/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocumentsNewRoute = DocumentsNewRouteImport.update({
+  id: '/documents/new',
+  path: '/documents/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentsIdRoute = DocumentsIdRouteImport.update({
+  id: '/documents/$id',
+  path: '/documents/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/documents/$id': typeof DocumentsIdRoute
+  '/documents/new': typeof DocumentsNewRoute
   '/documents/': typeof DocumentsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +67,8 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/documents/$id': typeof DocumentsIdRoute
+  '/documents/new': typeof DocumentsNewRoute
   '/documents': typeof DocumentsIndexRoute
 }
 export interface FileRoutesById {
@@ -61,14 +77,38 @@ export interface FileRoutesById {
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/documents/$id': typeof DocumentsIdRoute
+  '/documents/new': typeof DocumentsNewRoute
   '/documents/': typeof DocumentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/clients' | '/dashboard' | '/login' | '/documents/'
+  fullPaths:
+    | '/'
+    | '/clients'
+    | '/dashboard'
+    | '/login'
+    | '/documents/$id'
+    | '/documents/new'
+    | '/documents/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/clients' | '/dashboard' | '/login' | '/documents'
-  id: '__root__' | '/' | '/clients' | '/dashboard' | '/login' | '/documents/'
+  to:
+    | '/'
+    | '/clients'
+    | '/dashboard'
+    | '/login'
+    | '/documents/$id'
+    | '/documents/new'
+    | '/documents'
+  id:
+    | '__root__'
+    | '/'
+    | '/clients'
+    | '/dashboard'
+    | '/login'
+    | '/documents/$id'
+    | '/documents/new'
+    | '/documents/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +116,8 @@ export interface RootRouteChildren {
   ClientsRoute: typeof ClientsRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  DocumentsIdRoute: typeof DocumentsIdRoute
+  DocumentsNewRoute: typeof DocumentsNewRoute
   DocumentsIndexRoute: typeof DocumentsIndexRoute
 }
 
@@ -116,6 +158,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/documents/new': {
+      id: '/documents/new'
+      path: '/documents/new'
+      fullPath: '/documents/new'
+      preLoaderRoute: typeof DocumentsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/documents/$id': {
+      id: '/documents/$id'
+      path: '/documents/$id'
+      fullPath: '/documents/$id'
+      preLoaderRoute: typeof DocumentsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -124,6 +180,8 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsRoute: ClientsRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  DocumentsIdRoute: DocumentsIdRoute,
+  DocumentsNewRoute: DocumentsNewRoute,
   DocumentsIndexRoute: DocumentsIndexRoute,
 }
 export const routeTree = rootRouteImport
