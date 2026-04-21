@@ -3,6 +3,7 @@ import pdfFonts from "pdfmake/build/vfs_fonts";
 import type { TDocumentDefinitions } from "pdfmake/interfaces";
 import { BRAND } from "./brand";
 import { formatDate, formatMoney, rowTotal, type LineItem } from "./calc";
+import { LOGO_DATA_URL } from "./logoData";
 
 // Register fonts (Roboto bundled with pdfmake)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
