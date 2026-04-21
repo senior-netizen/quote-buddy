@@ -13,18 +13,18 @@ function Index() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <div className="flex items-baseline gap-2">
+      <header className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <div className="flex items-baseline gap-2 min-w-0">
           <span className="text-[17px] font-semibold tracking-tight">Squirrellabs</span>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">QuoteFlow</span>
+          <span className="hidden sm:inline text-[10px] uppercase tracking-[0.2em] text-muted-foreground">QuoteFlow</span>
         </div>
-        <Link to="/login" className="text-[13px] text-muted-foreground hover:text-foreground">
+        <Link to="/login" className="text-[13px] text-muted-foreground hover:text-foreground whitespace-nowrap">
           Sign in →
         </Link>
       </header>
-      <main className="mx-auto max-w-3xl px-6 pt-32 pb-24 text-center">
+      <main className="mx-auto max-w-3xl px-4 pt-16 pb-16 text-center sm:px-6 sm:pt-32 sm:pb-24">
         <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Quotations · Invoices · PDFs</p>
-        <h1 className="mt-6 text-6xl font-semibold tracking-tight leading-[1.05]">
+        <h1 className="mt-6 text-4xl sm:text-6xl font-semibold tracking-tight leading-[1.05]">
           Beautiful documents.<br />
           <span className="text-muted-foreground">Generated in seconds.</span>
         </h1>
@@ -40,7 +40,7 @@ function Index() {
             Open QuoteFlow
           </Link>
         </div>
-        <div className="mt-24 grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline text-left">
+        <div className="mt-16 sm:mt-24 grid grid-cols-1 sm:grid-cols-3 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline text-left">
           {[
             { k: "QT-2025-0001", l: "Auto-numbered" },
             { k: "Real-time", l: "Calculations" },
