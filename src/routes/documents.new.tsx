@@ -150,7 +150,13 @@ function Creator() {
       if (d) downloadPdf(d);
       navigate({ to: "/documents/$id", params: { id } });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
+    onError: (e) => {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+      // Refresh number on collision so a retry succeeds
+      if (e instanceof Error && e.message.includes("already in use")) {
+        generateDocNumber(docType).then(setDocNumber).catch(() => {});
+      }
+    },
   });
 
   const handlePreview = async () => {
