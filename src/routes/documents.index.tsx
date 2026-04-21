@@ -6,8 +6,9 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { formatMoney, formatDate, type LineItem } from "@/lib/calc";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Download, Eye } from "lucide-react";
+import { Plus, Download, Eye, Search } from "lucide-react";
 import { toast } from "sonner";
 import { generatePdfBlob, type DocForPdf } from "@/lib/pdf";
 import { issueVerifyToken } from "@/lib/verify.functions";
@@ -37,6 +38,7 @@ type DocRow = {
 
 function Documents() {
   const [filter, setFilter] = useState<Filter>("all");
+  const [search, setSearch] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -139,23 +141,48 @@ function Documents() {
         </Link>
       </div>
 
-      <div className="mt-6 sm:mt-8 inline-flex rounded-full border border-hairline p-0.5">
-        {(["all", "quote", "invoice"] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-full px-3 sm:px-4 py-1.5 text-[12px] capitalize transition-colors ${
-              filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {f === "all" ? "All" : f === "quote" ? "Quotations" : "Invoices"}
-          </button>
-        ))}
+      <div className="mt-6 sm:mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex w-fit rounded-full border border-hairline p-0.5">
+          {(["all", "quote", "invoice"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`rounded-full px-3 sm:px-4 py-1.5 text-[12px] capitalize transition-colors ${
+                filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f === "all" ? "All" : f === "quote" ? "Quotations" : "Invoices"}
+            </button>
+          ))}
+        </div>
+        <div className="relative w-full sm:w-72">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search number or client…"
+            className="h-9 rounded-full pl-9"
+            aria-label="Search documents"
+          />
+        </div>
       </div>
 
+      {(() => {
+        const q = search.trim().toLowerCase();
+        const filtered = q
+          ? docs.filter(
+              (d) =>
+                d.doc_number.toLowerCase().includes(q) ||
+                (d.client?.company_name ?? "").toLowerCase().includes(q),
+            )
+          : docs;
+        return (
       <div className="mt-6 overflow-hidden rounded-xl border border-hairline">
-        {docs.length === 0 ? (
-          <div className="px-6 py-16 text-center text-sm text-muted-foreground">No documents.</div>
+        {filtered.length === 0 ? (
+          <div className="px-6 py-16 text-center text-sm text-muted-foreground">
+            {docs.length === 0 ? "No documents." : "No matches for your search."}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
@@ -170,7 +197,7 @@ function Documents() {
                 </tr>
               </thead>
               <tbody>
-                {docs.map((d) => (
+                {filtered.map((d) => (
                   <tr key={d.id} className="border-b border-hairline last:border-0 hover:bg-secondary/30">
                     <td className="px-5 py-3">
                       <Link to="/documents/$id" params={{ id: d.id }} className="font-mono text-[12px] hover:underline underline-offset-4">
@@ -216,6 +243,8 @@ function Documents() {
           </div>
         )}
       </div>
+        );
+      })()}
 
       <Dialog
         open={!!previewUrl}
