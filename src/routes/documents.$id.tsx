@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { formatDate, formatMoney, rowTotal, type LineItem } from "@/lib/calc";
 import { generateDocNumber } from "@/lib/docNumber";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
+import { issueVerifyToken } from "@/lib/verify.functions";
 import { toast } from "sonner";
 import { ArrowLeft, Download, Eye, Repeat } from "lucide-react";
 
@@ -59,25 +60,36 @@ function Detail() {
     },
   });
 
-  const toPdf = (d: DocFull): DocForPdf => ({
-    doc_type: d.doc_type,
-    doc_number: d.doc_number,
-    issue_date: d.issue_date,
-    due_date: d.due_date,
-    line_items: Array.isArray(d.line_items) ? d.line_items : [],
-    tax_rate: Number(d.tax_rate),
-    discount: Number(d.discount),
-    subtotal: Number(d.subtotal),
-    tax_amount: Number(d.tax_amount),
-    total: Number(d.total),
-    notes: d.notes,
-    client: {
-      company_name: d.client?.company_name ?? "—",
-      address: d.client?.address ?? null,
-      email: d.client?.email ?? null,
-      phone: d.client?.phone ?? null,
-    },
-  });
+  const toPdf = async (d: DocFull): Promise<DocForPdf> => {
+    let verifyUrl: string | undefined;
+    try {
+      const tok = await issueVerifyToken({ data: { id: d.id } });
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      verifyUrl = `${origin}/verify/${tok.id}?sig=${encodeURIComponent(tok.sig)}&h=${tok.hash}`;
+    } catch {
+      verifyUrl = undefined;
+    }
+    return {
+      doc_type: d.doc_type,
+      doc_number: d.doc_number,
+      issue_date: d.issue_date,
+      due_date: d.due_date,
+      line_items: Array.isArray(d.line_items) ? d.line_items : [],
+      tax_rate: Number(d.tax_rate),
+      discount: Number(d.discount),
+      subtotal: Number(d.subtotal),
+      tax_amount: Number(d.tax_amount),
+      total: Number(d.total),
+      notes: d.notes,
+      client: {
+        company_name: d.client?.company_name ?? "—",
+        address: d.client?.address ?? null,
+        email: d.client?.email ?? null,
+        phone: d.client?.phone ?? null,
+      },
+      verifyUrl,
+    };
+  };
 
   const convert = useMutation({
     mutationFn: async () => {
@@ -143,10 +155,10 @@ function Detail() {
               {convert.isPending ? "Converting…" : "Convert to Invoice"}
             </Button>
           )}
-          <Button variant="outline" className="rounded-full" onClick={async () => setPreviewUrl(await openPdfPreview(toPdf(doc)))}>
+          <Button variant="outline" className="rounded-full" onClick={async () => setPreviewUrl(await openPdfPreview(await toPdf(doc)))}>
             <Eye className="mr-1.5 h-3.5 w-3.5" />Preview
           </Button>
-          <Button className="rounded-full" onClick={() => downloadPdf(toPdf(doc))}>
+          <Button className="rounded-full" onClick={async () => downloadPdf(await toPdf(doc))}>
             <Download className="mr-1.5 h-3.5 w-3.5" />Download PDF
           </Button>
         </div>

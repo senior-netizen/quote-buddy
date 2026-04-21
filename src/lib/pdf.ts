@@ -1,6 +1,7 @@
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 import type { TDocumentDefinitions } from "pdfmake/interfaces";
+import QRCode from "qrcode";
 import { BRAND } from "./brand";
 import { formatDate, formatMoney, rowTotal, type LineItem } from "./calc";
 import { LOGO_DATA_URL } from "./logoData";
@@ -27,15 +28,21 @@ export type DocForPdf = {
     email?: string | null;
     phone?: string | null;
   };
+  /** Optional verification URL — when provided, a QR code is embedded. */
+  verifyUrl?: string;
 };
 
 const INK = "#0a0a0a";
 const MUTED = "#6b7280";
 const HAIR = "#e5e7eb";
 
-function buildDef(d: DocForPdf): TDocumentDefinitions {
+async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
   const isInvoice = d.doc_type === "invoice";
   const title = isInvoice ? "Invoice" : "Quotation";
+
+  const qrDataUrl = d.verifyUrl
+    ? await QRCode.toDataURL(d.verifyUrl, { margin: 0, width: 220, errorCorrectionLevel: "M" })
+    : null;
 
   const itemRows = d.line_items.map((li, i) => [
     { text: String(i + 1), color: MUTED, fontSize: 9 },
@@ -190,16 +197,39 @@ function buildDef(d: DocForPdf): TDocumentDefinitions {
             { text: d.notes, fontSize: 9, color: INK },
           ] as const)
         : []),
+
+      ...(qrDataUrl && d.verifyUrl
+        ? ([
+            { text: "", margin: [0, 28, 0, 0] },
+            { canvas: [{ type: "line", x1: 0, y1: 0, x2: 499, y2: 0, lineWidth: 0.5, lineColor: HAIR }] },
+            {
+              margin: [0, 16, 0, 0],
+              columns: [
+                { image: qrDataUrl, width: 76 },
+                {
+                  width: "*",
+                  margin: [16, 4, 0, 0],
+                  stack: [
+                    { text: "VERIFY THIS DOCUMENT", fontSize: 8, color: MUTED, characterSpacing: 2 },
+                    { text: "Scan the QR code or visit the URL below to confirm this document was issued by Squirrellabs and has not been altered.", fontSize: 9, color: INK, margin: [0, 4, 0, 6] },
+                    { text: d.verifyUrl, fontSize: 8, color: MUTED, link: d.verifyUrl },
+                  ],
+                },
+              ],
+            },
+          ] as const)
+        : []),
     ],
   };
 }
 
-export function downloadPdf(d: DocForPdf) {
-  pdfMake.createPdf(buildDef(d)).download(`${d.doc_number}.pdf`);
+export async function downloadPdf(d: DocForPdf) {
+  pdfMake.createPdf(await buildDef(d)).download(`${d.doc_number}.pdf`);
 }
 
-export function openPdfPreview(d: DocForPdf): Promise<string> {
+export async function openPdfPreview(d: DocForPdf): Promise<string> {
+  const def = await buildDef(d);
   return new Promise((resolve) => {
-    pdfMake.createPdf(buildDef(d)).getDataUrl((url: string) => resolve(url));
+    pdfMake.createPdf(def).getDataUrl((url: string) => resolve(url));
   });
 }
