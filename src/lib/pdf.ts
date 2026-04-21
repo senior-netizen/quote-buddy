@@ -48,7 +48,7 @@ function buildDef(d: DocForPdf): TDocumentDefinitions {
     pageSize: "A4",
     pageMargins: [48, 56, 48, 72],
     defaultStyle: { font: "Roboto", color: INK, fontSize: 10, lineHeight: 1.35 },
-    footer: (currentPage, pageCount) => ({
+    footer: (currentPage: number, pageCount: number) => ({
       margin: [48, 16, 48, 0],
       stack: [
         { canvas: [{ type: "line", x1: 0, y1: 0, x2: 499, y2: 0, lineWidth: 0.5, lineColor: HAIR }] },
@@ -199,6 +199,6 @@ export function downloadPdf(d: DocForPdf) {
 
 export function openPdfPreview(d: DocForPdf): Promise<string> {
   return new Promise((resolve) => {
-    pdfMake.createPdf(buildDef(d)).getDataUrl((url) => resolve(url));
+    pdfMake.createPdf(buildDef(d)).getDataUrl((url: string) => resolve(url));
   });
 }
