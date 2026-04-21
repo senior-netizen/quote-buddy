@@ -28,13 +28,15 @@ export type DocForPdf = {
     email?: string | null;
     phone?: string | null;
   };
+  /** Optional verification URL — when provided, a QR code is embedded. */
+  verifyUrl?: string;
 };
 
 const INK = "#0a0a0a";
 const MUTED = "#6b7280";
 const HAIR = "#e5e7eb";
 
-function buildDef(d: DocForPdf): TDocumentDefinitions {
+async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
   const isInvoice = d.doc_type === "invoice";
   const title = isInvoice ? "Invoice" : "Quotation";
 
