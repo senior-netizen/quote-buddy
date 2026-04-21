@@ -248,7 +248,7 @@ function Creator() {
             </Button>
           </div>
           <div className="mt-3 overflow-hidden rounded-xl border border-hairline">
-            <div className="grid grid-cols-[1fr_90px_120px_120px_40px] items-center gap-2 border-b border-hairline bg-secondary/50 px-4 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+            <div className="hidden sm:grid grid-cols-[1fr_90px_120px_120px_40px] items-center gap-2 border-b border-hairline bg-secondary/50 px-4 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground">
               <div>Description</div>
               <div className="text-right">Qty</div>
               <div className="text-right">Unit price</div>
@@ -258,39 +258,50 @@ function Creator() {
             {items.map((it, i) => (
               <div
                 key={i}
-                className="grid grid-cols-[1fr_90px_120px_120px_40px] items-center gap-2 border-b border-hairline px-4 py-2 last:border-0"
+                className="flex flex-col gap-2 border-b border-hairline px-3 py-3 last:border-0 sm:grid sm:grid-cols-[1fr_90px_120px_120px_40px] sm:items-center sm:gap-2 sm:px-4 sm:py-2"
               >
                 <Input
-                  placeholder="Item or service"
+                  placeholder="Item or service description"
                   value={it.description}
                   onChange={(e) => updateItem(i, { description: e.target.value })}
-                  className="border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="w-full border border-hairline bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring sm:border-0 sm:focus-visible:ring-0 sm:focus-visible:ring-offset-0"
                 />
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={it.quantity}
-                  onChange={(e) => updateItem(i, { quantity: parseFloat(e.target.value) || 0 })}
-                  className="border-0 bg-transparent text-right shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 tabular"
-                />
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={it.unit_price}
-                  onChange={(e) => updateItem(i, { unit_price: parseFloat(e.target.value) || 0 })}
-                  className="border-0 bg-transparent text-right shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 tabular"
-                />
-                <div className="text-right text-sm tabular">{formatMoney(rowTotal(it))}</div>
-                <button
-                  type="button"
-                  onClick={() => removeItem(i)}
-                  className="text-muted-foreground hover:text-destructive disabled:opacity-30"
-                  disabled={items.length === 1}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-2 sm:contents">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground sm:hidden">Qty</div>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={it.quantity}
+                      onChange={(e) => updateItem(i, { quantity: parseFloat(e.target.value) || 0 })}
+                      className="border border-hairline bg-transparent text-right shadow-none focus-visible:ring-1 focus-visible:ring-ring tabular sm:border-0 sm:focus-visible:ring-0 sm:focus-visible:ring-offset-0"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground sm:hidden">Unit price</div>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={it.unit_price}
+                      onChange={(e) => updateItem(i, { unit_price: parseFloat(e.target.value) || 0 })}
+                      className="border border-hairline bg-transparent text-right shadow-none focus-visible:ring-1 focus-visible:ring-ring tabular sm:border-0 sm:focus-visible:ring-0 sm:focus-visible:ring-offset-0"
+                    />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground sm:hidden">Amount</div>
+                    <div className="text-sm tabular py-2">{formatMoney(rowTotal(it))}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(i)}
+                    className="text-muted-foreground hover:text-destructive disabled:opacity-30"
+                    disabled={items.length === 1}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
