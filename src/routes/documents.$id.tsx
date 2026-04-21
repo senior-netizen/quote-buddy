@@ -58,35 +58,57 @@ function Detail() {
     },
   });
 
-  const toPdf = async (d: DocFull): Promise<DocForPdf> => {
-    let verifyUrl: string | undefined;
+  /** Build the structured server URL for the document. */
+  const buildServerUrl = (d: DocFull, preview: boolean, token: string) => {
+    const year = d.issue_date.slice(0, 4);
+    const type = d.doc_type === "invoice" ? "invoices" : "quotes";
+    const qs = new URLSearchParams({ token });
+    if (preview) qs.set("preview", "1");
+    return `/api/documents/${year}/${type}/${d.id}.pdf?${qs.toString()}`;
+  };
+
+  /** Fetch the PDF from the server route as a blob, using the user's auth token. */
+  const fetchPdfBlob = async (d: DocFull, preview: boolean): Promise<Blob> => {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token;
+    if (!token) throw new Error("Not authenticated");
+    const res = await fetch(buildServerUrl(d, preview, token), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Failed (${res.status})`);
+    return await res.blob();
+  };
+
+  const handleDownload = async () => {
+    if (!doc) return;
     try {
-      const tok = await issueVerifyToken({ data: { id: d.id } });
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      verifyUrl = `${origin}/verify/${tok.id}?sig=${encodeURIComponent(tok.sig)}&h=${tok.hash}`;
-    } catch {
-      verifyUrl = undefined;
+      const blob = await fetchPdfBlob(doc, false);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${doc.doc_number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed");
     }
-    return {
-      doc_type: d.doc_type,
-      doc_number: d.doc_number,
-      issue_date: d.issue_date,
-      due_date: d.due_date,
-      line_items: Array.isArray(d.line_items) ? d.line_items : [],
-      tax_rate: Number(d.tax_rate),
-      discount: Number(d.discount),
-      subtotal: Number(d.subtotal),
-      tax_amount: Number(d.tax_amount),
-      total: Number(d.total),
-      notes: d.notes,
-      client: {
-        company_name: d.client?.company_name ?? "—",
-        address: d.client?.address ?? null,
-        email: d.client?.email ?? null,
-        phone: d.client?.phone ?? null,
-      },
-      verifyUrl,
-    };
+  };
+
+  const handlePreview = async () => {
+    if (!doc) return;
+    try {
+      const blob = await fetchPdfBlob(doc, true);
+      const url = URL.createObjectURL(blob);
+      // Revoke any prior preview URL
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Preview failed");
+    }
   };
 
   const convert = useMutation({
@@ -153,10 +175,10 @@ function Detail() {
               {convert.isPending ? "Converting…" : "Convert to Invoice"}
             </Button>
           )}
-          <Button variant="outline" className="rounded-full" onClick={async () => setPreviewUrl(await openPdfPreview(await toPdf(doc)))}>
+          <Button variant="outline" className="rounded-full" onClick={handlePreview}>
             <Eye className="mr-1.5 h-3.5 w-3.5" />Preview
           </Button>
-          <Button className="rounded-full" onClick={async () => downloadPdf(await toPdf(doc))}>
+          <Button className="rounded-full" onClick={handleDownload}>
             <Download className="mr-1.5 h-3.5 w-3.5" />Download PDF
           </Button>
         </div>
