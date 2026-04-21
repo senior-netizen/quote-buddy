@@ -84,7 +84,7 @@ function ResultCard({ result }: { result: VerifyResult }) {
             <h1 className="text-xl font-semibold tracking-tight">Document verified</h1>
           </div>
         </div>
-        <dl className="mt-8 grid grid-cols-2 gap-y-4 text-sm">
+        <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-sm sm:grid-cols-2 sm:gap-y-4">
           <Row label="Issuer" value={result.issuer} />
           <Row label="Type" value={result.doc_type === "invoice" ? "Invoice" : "Quotation"} />
           <Row label="Document №" value={<span className="font-mono">{result.doc_number}</span>} />

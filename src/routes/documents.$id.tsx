@@ -158,43 +158,46 @@ function Detail() {
         <ArrowLeft className="h-3.5 w-3.5" /> All documents
       </Link>
 
-      <div className="mt-4 flex items-end justify-between">
-        <div>
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
             {doc.doc_type === "quote" ? "Quotation" : "Invoice"}
           </p>
-          <h1 className="mt-2 font-mono text-3xl font-semibold tracking-tight">{doc.doc_number}</h1>
+          <h1 className="mt-2 font-mono text-2xl sm:text-3xl font-semibold tracking-tight break-all">{doc.doc_number}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {doc.client?.company_name} · Issued {formatDate(doc.issue_date)}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {doc.doc_type === "quote" && (
             <Button variant="outline" className="rounded-full" onClick={() => convert.mutate()} disabled={convert.isPending}>
               <Repeat className="mr-1.5 h-3.5 w-3.5" />
-              {convert.isPending ? "Converting…" : "Convert to Invoice"}
+              <span className="hidden sm:inline">{convert.isPending ? "Converting…" : "Convert to Invoice"}</span>
+              <span className="sm:hidden">{convert.isPending ? "…" : "Convert"}</span>
             </Button>
           )}
           <Button variant="outline" className="rounded-full" onClick={handlePreview}>
             <Eye className="mr-1.5 h-3.5 w-3.5" />Preview
           </Button>
           <Button className="rounded-full" onClick={handleDownload}>
-            <Download className="mr-1.5 h-3.5 w-3.5" />Download PDF
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Download PDF</span>
+            <span className="sm:hidden">PDF</span>
           </Button>
         </div>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_320px]">
-        <div className="min-w-0 rounded-2xl border border-hairline bg-card p-8">
-          <div className="grid grid-cols-2 gap-8 text-sm">
+      <div className="mt-8 sm:mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px] lg:gap-10">
+        <div className="min-w-0 rounded-2xl border border-hairline bg-card p-5 sm:p-8">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 text-sm">
             <div>
               <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Billed to</div>
               <div className="mt-2 font-medium">{doc.client?.company_name}</div>
               {doc.client?.address && <div className="text-muted-foreground whitespace-pre-line">{doc.client.address}</div>}
-              {doc.client?.email && <div className="text-muted-foreground">{doc.client.email}</div>}
+              {doc.client?.email && <div className="text-muted-foreground break-all">{doc.client.email}</div>}
               {doc.client?.phone && <div className="text-muted-foreground">{doc.client.phone}</div>}
             </div>
-            <div className="text-right">
+            <div className="sm:text-right">
               <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                 {doc.doc_type === "invoice" ? "Due" : "Valid until"}
               </div>
@@ -202,25 +205,27 @@ function Detail() {
             </div>
           </div>
 
-          <div className="mt-10 overflow-hidden">
-            <div className="grid grid-cols-[1fr_60px_120px_120px] gap-2 border-b border-foreground pb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-              <div>Description</div>
-              <div className="text-right">Qty</div>
-              <div className="text-right">Unit</div>
-              <div className="text-right">Amount</div>
-            </div>
-            {doc.line_items.map((it, i) => (
-              <div key={i} className="grid grid-cols-[1fr_60px_120px_120px] gap-2 border-b border-hairline py-3 text-sm">
-                <div>{it.description}</div>
-                <div className="text-right tabular">{it.quantity}</div>
-                <div className="text-right tabular">{formatMoney(it.unit_price)}</div>
-                <div className="text-right tabular">{formatMoney(rowTotal(it))}</div>
+          <div className="mt-8 sm:mt-10 -mx-5 sm:mx-0 overflow-x-auto">
+            <div className="min-w-[480px] px-5 sm:px-0">
+              <div className="grid grid-cols-[1fr_60px_120px_120px] gap-2 border-b border-foreground pb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <div>Description</div>
+                <div className="text-right">Qty</div>
+                <div className="text-right">Unit</div>
+                <div className="text-right">Amount</div>
               </div>
-            ))}
+              {doc.line_items.map((it, i) => (
+                <div key={i} className="grid grid-cols-[1fr_60px_120px_120px] gap-2 border-b border-hairline py-3 text-sm">
+                  <div>{it.description}</div>
+                  <div className="text-right tabular">{it.quantity}</div>
+                  <div className="text-right tabular">{formatMoney(it.unit_price)}</div>
+                  <div className="text-right tabular">{formatMoney(rowTotal(it))}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="mt-6 flex justify-end">
-            <dl className="w-72 space-y-2 text-sm">
+            <dl className="w-full sm:w-72 space-y-2 text-sm">
               <div className="flex justify-between"><dt className="text-muted-foreground">Subtotal</dt><dd className="tabular">{formatMoney(Number(doc.subtotal))}</dd></div>
               <div className="flex justify-between"><dt className="text-muted-foreground">Tax ({doc.tax_rate}%)</dt><dd className="tabular">{formatMoney(Number(doc.tax_amount))}</dd></div>
               {Number(doc.discount) > 0 && (
@@ -258,7 +263,7 @@ function Detail() {
           }
         }}
       >
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-[calc(100vw-1rem)] sm:max-w-4xl p-3 sm:p-6">
           <DialogHeader><DialogTitle>PDF Preview</DialogTitle></DialogHeader>
           {previewUrl && <iframe src={previewUrl} title="PDF preview" className="h-[70vh] w-full rounded-md border border-hairline" />}
         </DialogContent>

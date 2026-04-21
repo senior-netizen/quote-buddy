@@ -180,10 +180,10 @@ function Creator() {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_320px]">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px] lg:gap-10">
       <div className="min-w-0">
         <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Create</p>
-        <h1 className="mt-2 text-4xl font-semibold tracking-tight">
+        <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight">
           New {docType === "quote" ? "quotation" : "invoice"}
         </h1>
 
@@ -326,7 +326,7 @@ function Creator() {
 
       {/* Sticky totals */}
       <aside className="lg:sticky lg:top-20 lg:h-fit">
-        <div className="rounded-2xl border border-hairline bg-card p-6">
+        <div className="rounded-2xl border border-hairline bg-card p-5 sm:p-6">
           <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Summary</div>
           <dl className="mt-5 space-y-3 text-sm">
             <Row label="Subtotal" value={formatMoney(totals.subtotal)} />
@@ -351,12 +351,12 @@ function Creator() {
       </aside>
 
       <Dialog open={!!previewUrl} onOpenChange={(o) => !o && setPreviewUrl(null)}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-[calc(100vw-1rem)] sm:max-w-4xl p-3 sm:p-6">
           <DialogHeader><DialogTitle>PDF Preview</DialogTitle></DialogHeader>
           {previewUrl && (
             <iframe src={previewUrl} title="PDF preview" className="h-[70vh] w-full rounded-md border border-hairline" />
           )}
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="ghost" onClick={() => setPreviewUrl(null)}>Close</Button>
             <Button
               onClick={() => {
