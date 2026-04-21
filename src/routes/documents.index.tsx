@@ -4,11 +4,13 @@ import { useState } from "react";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { formatMoney, formatDate } from "@/lib/calc";
+import { formatMoney, formatDate, type LineItem } from "@/lib/calc";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Download, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { generatePdfBlob, type DocForPdf } from "@/lib/pdf";
+import { issueVerifyToken } from "@/lib/verify.functions";
 
 export const Route = createFileRoute("/documents/")({ component: Page });
 
