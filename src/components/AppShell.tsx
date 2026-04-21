@@ -21,8 +21,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-30 border-b border-hairline bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-8 px-6">
-          <Link to="/dashboard" className="flex items-baseline gap-2">
-            <span className="text-[17px] font-semibold tracking-tight">Squirrellabs</span>
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <img src={squirrellLogo} alt="Squirrell" className="h-8 w-auto" />
             <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">QuoteFlow</span>
           </Link>
           <nav className="flex items-center gap-1">
