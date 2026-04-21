@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Users, FileText, Plus, LogOut } from "lucide-react";
 import { type ReactNode } from "react";
+import squirrellLogo from "@/assets/squirrell-logo.png";
 
 const nav = [
   { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
