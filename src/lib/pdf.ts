@@ -74,7 +74,7 @@ function buildDef(d: DocForPdf): TDocumentDefinitions {
         columns: [
           {
             stack: [
-              { image: LOGO_DATA_URL, width: 140 },
+              { image: LOGO_DATA_URL, width: 110 },
               { text: BRAND.tagline.toUpperCase(), fontSize: 8, color: MUTED, characterSpacing: 2, margin: [0, 6, 0, 0] },
             ],
           },
