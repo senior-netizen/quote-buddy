@@ -1,0 +1,105 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { RequireAuth } from "@/components/RequireAuth";
+import { AppShell } from "@/components/AppShell";
+import { supabase } from "@/integrations/supabase/client";
+import { formatMoney, formatDate } from "@/lib/calc";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+
+export const Route = createFileRoute("/documents/")({ component: Page });
+
+type Filter = "all" | "quote" | "invoice";
+
+function Page() {
+  return (
+    <RequireAuth>
+      <AppShell>
+        <Documents />
+      </AppShell>
+    </RequireAuth>
+  );
+}
+
+function Documents() {
+  const [filter, setFilter] = useState<Filter>("all");
+  const { data: docs = [] } = useQuery({
+    queryKey: ["documents", filter],
+    queryFn: async () => {
+      let q = supabase
+        .from("documents")
+        .select("id, doc_type, doc_number, issue_date, total, client:clients(company_name)")
+        .order("created_at", { ascending: false });
+      if (filter !== "all") q = q.eq("doc_type", filter);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <div>
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Library</p>
+          <h1 className="mt-2 text-4xl font-semibold tracking-tight">Documents</h1>
+        </div>
+        <Link to="/documents/new">
+          <Button className="rounded-full"><Plus className="mr-1.5 h-3.5 w-3.5" />New</Button>
+        </Link>
+      </div>
+
+      <div className="mt-8 inline-flex rounded-full border border-hairline p-0.5">
+        {(["all", "quote", "invoice"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`rounded-full px-4 py-1.5 text-[12px] capitalize transition-colors ${
+              filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {f === "all" ? "All" : f === "quote" ? "Quotations" : "Invoices"}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-6 overflow-hidden rounded-xl border border-hairline">
+        {docs.length === 0 ? (
+          <div className="px-6 py-16 text-center text-sm text-muted-foreground">No documents.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="border-b border-hairline bg-secondary/50">
+              <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                <th className="px-5 py-3 text-left font-medium">Number</th>
+                <th className="px-5 py-3 text-left font-medium">Type</th>
+                <th className="px-5 py-3 text-left font-medium">Client</th>
+                <th className="px-5 py-3 text-left font-medium">Issued</th>
+                <th className="px-5 py-3 text-right font-medium">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {docs.map((d) => (
+                <tr key={d.id} className="border-b border-hairline last:border-0 hover:bg-secondary/30">
+                  <td className="px-5 py-3">
+                    <Link to="/documents/$id" params={{ id: d.id }} className="font-mono text-[12px] hover:underline underline-offset-4">
+                      {d.doc_number}
+                    </Link>
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className="rounded-full border border-hairline px-2 py-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {d.doc_type === "quote" ? "Quote" : "Invoice"}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3">{(d.client as { company_name: string } | null)?.company_name ?? "—"}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{formatDate(d.issue_date)}</td>
+                  <td className="px-5 py-3 text-right tabular">{formatMoney(Number(d.total))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
