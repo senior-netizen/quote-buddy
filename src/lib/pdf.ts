@@ -197,16 +197,39 @@ async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
             { text: d.notes, fontSize: 9, color: INK },
           ] as const)
         : []),
+
+      ...(qrDataUrl && d.verifyUrl
+        ? ([
+            { text: "", margin: [0, 28, 0, 0] },
+            { canvas: [{ type: "line", x1: 0, y1: 0, x2: 499, y2: 0, lineWidth: 0.5, lineColor: HAIR }] },
+            {
+              margin: [0, 16, 0, 0],
+              columns: [
+                { image: qrDataUrl, width: 76 },
+                {
+                  width: "*",
+                  margin: [16, 4, 0, 0],
+                  stack: [
+                    { text: "VERIFY THIS DOCUMENT", fontSize: 8, color: MUTED, characterSpacing: 2 },
+                    { text: "Scan the QR code or visit the URL below to confirm this document was issued by Squirrellabs and has not been altered.", fontSize: 9, color: INK, margin: [0, 4, 0, 6] },
+                    { text: d.verifyUrl, fontSize: 8, color: MUTED, link: d.verifyUrl },
+                  ],
+                },
+              ],
+            },
+          ] as const)
+        : []),
     ],
   };
 }
 
-export function downloadPdf(d: DocForPdf) {
-  pdfMake.createPdf(buildDef(d)).download(`${d.doc_number}.pdf`);
+export async function downloadPdf(d: DocForPdf) {
+  pdfMake.createPdf(await buildDef(d)).download(`${d.doc_number}.pdf`);
 }
 
-export function openPdfPreview(d: DocForPdf): Promise<string> {
+export async function openPdfPreview(d: DocForPdf): Promise<string> {
+  const def = await buildDef(d);
   return new Promise((resolve) => {
-    pdfMake.createPdf(buildDef(d)).getDataUrl((url: string) => resolve(url));
+    pdfMake.createPdf(def).getDataUrl((url: string) => resolve(url));
   });
 }
