@@ -4,11 +4,13 @@ import { useState } from "react";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { formatMoney, formatDate } from "@/lib/calc";
+import { formatMoney, formatDate, type LineItem } from "@/lib/calc";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Download, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { generatePdfBlob, type DocForPdf } from "@/lib/pdf";
+import { issueVerifyToken } from "@/lib/verify.functions";
 
 export const Route = createFileRoute("/documents/")({ component: Page });
 
@@ -52,29 +54,48 @@ function Documents() {
     },
   });
 
-  const buildServerUrl = (d: DocRow, preview: boolean, token: string) => {
-    const year = d.issue_date.slice(0, 4);
-    const type = d.doc_type === "invoice" ? "invoices" : "quotes";
-    const qs = new URLSearchParams({ token });
-    if (preview) qs.set("preview", "1");
-    return `/api/documents/${year}/${type}/${d.id}.pdf?${qs.toString()}`;
-  };
+  const buildBlob = async (id: string): Promise<Blob> => {
+    // Fetch full document + client
+    const { data: doc, error } = await supabase
+      .from("documents")
+      .select("*, client:clients(company_name, address, email, phone)")
+      .eq("id", id)
+      .maybeSingle();
+    if (error || !doc) throw new Error("Document not found");
 
-  const fetchBlob = async (d: DocRow, preview: boolean): Promise<Blob> => {
-    const { data: sess } = await supabase.auth.getSession();
-    const token = sess.session?.access_token;
-    if (!token) throw new Error("Not authenticated");
-    const res = await fetch(buildServerUrl(d, preview, token), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error(`Failed (${res.status})`);
-    return await res.blob();
+    const client = (doc.client as unknown as {
+      company_name: string;
+      address: string | null;
+      email: string | null;
+      phone: string | null;
+    } | null) ?? { company_name: "—", address: null, email: null, phone: null };
+
+    // Get signed verify token from server
+    const { id: docId, hash, sig } = await issueVerifyToken({ data: { id } });
+    const verifyUrl = `${window.location.origin}/verify/${docId}?sig=${encodeURIComponent(sig)}&h=${hash}`;
+
+    const docForPdf: DocForPdf = {
+      doc_type: doc.doc_type as "quote" | "invoice",
+      doc_number: doc.doc_number,
+      issue_date: doc.issue_date,
+      due_date: doc.due_date,
+      line_items: (doc.line_items as unknown as LineItem[]) ?? [],
+      tax_rate: Number(doc.tax_rate),
+      discount: Number(doc.discount),
+      subtotal: Number(doc.subtotal),
+      tax_amount: Number(doc.tax_amount),
+      total: Number(doc.total),
+      notes: doc.notes,
+      client,
+      verifyUrl,
+    };
+    return await generatePdfBlob(docForPdf);
   };
 
   const handleDownload = async (d: DocRow) => {
     setBusyId(d.id);
     try {
-      const blob = await fetchBlob(d, false);
+      const blob = await buildBlob(d.id);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -93,7 +114,7 @@ function Documents() {
   const handlePreview = async (d: DocRow) => {
     setBusyId(d.id);
     try {
-      const blob = await fetchBlob(d, true);
+      const blob = await buildBlob(d.id);
       const url = URL.createObjectURL(blob);
       setPreviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
