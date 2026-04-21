@@ -11,7 +11,7 @@ import { generateDocNumber } from "@/lib/docNumber";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
 import { issueVerifyToken } from "@/lib/verify.functions";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Eye, Repeat, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Download, Eye, Repeat } from "lucide-react";
 
 export const Route = createFileRoute("/documents/$id")({ component: Page });
 
