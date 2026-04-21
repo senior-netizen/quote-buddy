@@ -249,7 +249,15 @@ function Detail() {
         </aside>
       </div>
 
-      <Dialog open={!!previewUrl} onOpenChange={(o) => !o && setPreviewUrl(null)}>
+      <Dialog
+        open={!!previewUrl}
+        onOpenChange={(o) => {
+          if (!o) {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl">
           <DialogHeader><DialogTitle>PDF Preview</DialogTitle></DialogHeader>
           {previewUrl && <iframe src={previewUrl} title="PDF preview" className="h-[70vh] w-full rounded-md border border-hairline" />}
