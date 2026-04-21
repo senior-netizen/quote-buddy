@@ -114,35 +114,50 @@ function Creator() {
       if (err) throw new Error(err);
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) throw new Error("Not authenticated");
-      const { data, error } = await supabase
-        .from("documents")
-        .insert({
-          user_id: u.user.id,
-          client_id: clientId,
-          doc_type: docType,
-          doc_number: docNumber,
-          issue_date: issueDate,
-          due_date: dueDate || null,
-          line_items: items as unknown as never,
-          tax_rate: taxRate,
-          discount,
-          subtotal: totals.subtotal,
-          tax_amount: totals.tax_amount,
-          total: totals.total,
-          notes: notes || null,
-        })
-        .select("id")
-        .single();
-      if (error) {
-        // 23505 = unique_violation
-        if ((error as { code?: string }).code === "23505") {
-          throw new Error(
-            `Document number ${docNumber} is already in use. Generating a new one—please try again.`,
-          );
+
+      const MAX_ATTEMPTS = 5;
+      let attemptNumber = docNumber;
+      let regenerated = false;
+
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        const { data, error } = await supabase
+          .from("documents")
+          .insert({
+            user_id: u.user.id,
+            client_id: clientId,
+            doc_type: docType,
+            doc_number: attemptNumber,
+            issue_date: issueDate,
+            due_date: dueDate || null,
+            line_items: items as unknown as never,
+            tax_rate: taxRate,
+            discount,
+            subtotal: totals.subtotal,
+            tax_amount: totals.tax_amount,
+            total: totals.total,
+            notes: notes || null,
+          })
+          .select("id")
+          .single();
+
+        if (!error) {
+          // Sync UI state with the number that actually persisted
+          if (attemptNumber !== docNumber) setDocNumber(attemptNumber);
+          if (regenerated) {
+            toast.message(`Document number reassigned to ${attemptNumber}`);
+          }
+          return data.id as string;
+        }
+
+        // 23505 = unique_violation — regenerate and retry automatically
+        if ((error as { code?: string }).code === "23505" && attempt < MAX_ATTEMPTS) {
+          attemptNumber = await generateDocNumber(docType);
+          regenerated = true;
+          continue;
         }
         throw error;
       }
-      return data.id as string;
+      throw new Error("Could not allocate a unique document number. Please try again.");
     },
     onSuccess: (id) => {
       toast.success("Document saved");
@@ -152,10 +167,6 @@ function Creator() {
     },
     onError: (e) => {
       toast.error(e instanceof Error ? e.message : "Save failed");
-      // Refresh number on collision so a retry succeeds
-      if (e instanceof Error && e.message.includes("already in use")) {
-        generateDocNumber(docType).then(setDocNumber).catch(() => {});
-      }
     },
   });
 
