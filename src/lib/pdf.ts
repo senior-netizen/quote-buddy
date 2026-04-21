@@ -1,6 +1,7 @@
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 import type { TDocumentDefinitions } from "pdfmake/interfaces";
+import QRCode from "qrcode";
 import { BRAND } from "./brand";
 import { formatDate, formatMoney, rowTotal, type LineItem } from "./calc";
 import { LOGO_DATA_URL } from "./logoData";
