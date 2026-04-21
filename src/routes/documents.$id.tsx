@@ -155,10 +155,10 @@ function Detail() {
               {convert.isPending ? "Converting…" : "Convert to Invoice"}
             </Button>
           )}
-          <Button variant="outline" className="rounded-full" onClick={async () => setPreviewUrl(await openPdfPreview(toPdf(doc)))}>
+          <Button variant="outline" className="rounded-full" onClick={async () => setPreviewUrl(await openPdfPreview(await toPdf(doc)))}>
             <Eye className="mr-1.5 h-3.5 w-3.5" />Preview
           </Button>
-          <Button className="rounded-full" onClick={() => downloadPdf(toPdf(doc))}>
+          <Button className="rounded-full" onClick={async () => downloadPdf(await toPdf(doc))}>
             <Download className="mr-1.5 h-3.5 w-3.5" />Download PDF
           </Button>
         </div>
