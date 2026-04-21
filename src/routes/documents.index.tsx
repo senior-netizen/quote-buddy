@@ -6,7 +6,9 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { formatMoney, formatDate } from "@/lib/calc";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Download, Eye } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/documents/")({ component: Page });
 
@@ -22,8 +24,20 @@ function Page() {
   );
 }
 
+type DocRow = {
+  id: string;
+  doc_type: "quote" | "invoice";
+  doc_number: string;
+  issue_date: string;
+  total: number;
+  client: { company_name: string } | null;
+};
+
 function Documents() {
   const [filter, setFilter] = useState<Filter>("all");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
   const { data: docs = [] } = useQuery({
     queryKey: ["documents", filter],
     queryFn: async () => {
@@ -34,9 +48,63 @@ function Documents() {
       if (filter !== "all") q = q.eq("doc_type", filter);
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as unknown as DocRow[];
     },
   });
+
+  const buildServerUrl = (d: DocRow, preview: boolean, token: string) => {
+    const year = d.issue_date.slice(0, 4);
+    const type = d.doc_type === "invoice" ? "invoices" : "quotes";
+    const qs = new URLSearchParams({ token });
+    if (preview) qs.set("preview", "1");
+    return `/api/documents/${year}/${type}/${d.id}.pdf?${qs.toString()}`;
+  };
+
+  const fetchBlob = async (d: DocRow, preview: boolean): Promise<Blob> => {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token;
+    if (!token) throw new Error("Not authenticated");
+    const res = await fetch(buildServerUrl(d, preview, token), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Failed (${res.status})`);
+    return await res.blob();
+  };
+
+  const handleDownload = async (d: DocRow) => {
+    setBusyId(d.id);
+    try {
+      const blob = await fetchBlob(d, false);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${d.doc_number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handlePreview = async (d: DocRow) => {
+    setBusyId(d.id);
+    try {
+      const blob = await fetchBlob(d, true);
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Preview failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   return (
     <div>
@@ -76,6 +144,7 @@ function Documents() {
                 <th className="px-5 py-3 text-left font-medium">Client</th>
                 <th className="px-5 py-3 text-left font-medium">Issued</th>
                 <th className="px-5 py-3 text-right font-medium">Total</th>
+                <th className="px-5 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -91,15 +160,54 @@ function Documents() {
                       {d.doc_type === "quote" ? "Quote" : "Invoice"}
                     </span>
                   </td>
-                  <td className="px-5 py-3">{(d.client as { company_name: string } | null)?.company_name ?? "—"}</td>
+                  <td className="px-5 py-3">{d.client?.company_name ?? "—"}</td>
                   <td className="px-5 py-3 text-muted-foreground">{formatDate(d.issue_date)}</td>
                   <td className="px-5 py-3 text-right tabular">{formatMoney(Number(d.total))}</td>
+                  <td className="px-5 py-3">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-full px-3"
+                        onClick={() => handlePreview(d)}
+                        disabled={busyId === d.id}
+                        aria-label={`Preview ${d.doc_number}`}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-full px-3"
+                        onClick={() => handleDownload(d)}
+                        disabled={busyId === d.id}
+                        aria-label={`Download ${d.doc_number}`}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
+
+      <Dialog
+        open={!!previewUrl}
+        onOpenChange={(o) => {
+          if (!o) {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-4xl">
+          <DialogHeader><DialogTitle>PDF Preview</DialogTitle></DialogHeader>
+          {previewUrl && <iframe src={previewUrl} title="PDF preview" className="h-[70vh] w-full rounded-md border border-hairline" />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
