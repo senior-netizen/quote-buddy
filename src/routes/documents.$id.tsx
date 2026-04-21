@@ -263,7 +263,7 @@ function Detail() {
           }
         }}
       >
-        <DialogContent className="max-w-[calc(100vw-1rem)] sm:max-w-4xl p-3 sm:p-6">
+        <DialogContent className="sm:max-w-4xl p-3 sm:p-6">
           <DialogHeader><DialogTitle>PDF Preview</DialogTitle></DialogHeader>
           {previewUrl && <iframe src={previewUrl} title="PDF preview" className="h-[70vh] w-full rounded-md border border-hairline" />}
         </DialogContent>
