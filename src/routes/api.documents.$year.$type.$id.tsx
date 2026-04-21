@@ -1,0 +1,151 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { buildDef, buildDocPath, type DocForPdf } from "@/lib/pdfDef";
+import { computeDocHash, type CanonicalDoc } from "@/lib/docHash";
+import { signVerifyToken } from "@/lib/verifySign.server";
+import type { LineItem } from "@/lib/calc";
+
+/**
+ * Serves a PDF for an authenticated user's document under a structured path:
+ *   /api/documents/{year}/{quotes|invoices}/{docId}.pdf
+ *
+ * The {year} and {type} segments must match the document's actual values —
+ * this prevents path enumeration and makes URLs self-describing.
+ */
+export const Route = createFileRoute("/api/documents/$year/$type/$id")({
+  server: {
+    handlers: {
+      GET: async ({ request, params }) => {
+        // Strip ".pdf" suffix from id segment
+        const idRaw = params.id.endsWith(".pdf") ? params.id.slice(0, -4) : params.id;
+        const previewMode = new URL(request.url).searchParams.get("preview") === "1";
+
+        // Auth: Bearer token in header OR ?token= query (for iframe/anchor use)
+        const url = new URL(request.url);
+        const queryToken = url.searchParams.get("token");
+        const authHeader = request.headers.get("authorization");
+        const token = authHeader?.startsWith("Bearer ")
+          ? authHeader.slice("Bearer ".length)
+          : queryToken;
+
+        if (!token) {
+          return new Response("Unauthorized", { status: 401 });
+        }
+
+        const SUPABASE_URL = process.env.SUPABASE_URL;
+        const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+        if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+          return new Response("Server misconfigured", { status: 500 });
+        }
+
+        const userClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+          global: { headers: { Authorization: `Bearer ${token}` } },
+          auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+        });
+        const { data: claimsRes, error: claimsErr } = await userClient.auth.getClaims(token);
+        if (claimsErr || !claimsRes?.claims?.sub) {
+          return new Response("Unauthorized", { status: 401 });
+        }
+        const userId = claimsRes.claims.sub as string;
+
+        // Fetch via admin client, then enforce ownership ourselves
+        const { data: doc, error } = await supabaseAdmin
+          .from("documents")
+          .select("*, client:clients(company_name, address, email, phone)")
+          .eq("id", idRaw)
+          .maybeSingle();
+        if (error || !doc) return new Response("Not found", { status: 404 });
+        if (doc.user_id !== userId) return new Response("Forbidden", { status: 403 });
+
+        // Validate path segments match the document
+        const expectedYear = doc.issue_date.slice(0, 4);
+        const expectedType = doc.doc_type === "invoice" ? "invoices" : "quotes";
+        if (params.year !== expectedYear || params.type !== expectedType) {
+          return new Response("Not found", { status: 404 });
+        }
+
+        const client = (doc.client as unknown as {
+          company_name: string;
+          address: string | null;
+          email: string | null;
+          phone: string | null;
+        } | null) ?? { company_name: "—", address: null, email: null, phone: null };
+
+        const lineItems = (doc.line_items as unknown as LineItem[]) ?? [];
+
+        // Build verify URL (signed, matches client behaviour)
+        const canonical: CanonicalDoc = {
+          doc_type: doc.doc_type,
+          doc_number: doc.doc_number,
+          issue_date: doc.issue_date,
+          due_date: doc.due_date,
+          line_items: lineItems,
+          tax_rate: Number(doc.tax_rate),
+          discount: Number(doc.discount),
+          subtotal: Number(doc.subtotal),
+          tax_amount: Number(doc.tax_amount),
+          total: Number(doc.total),
+          notes: doc.notes,
+          client: { company_name: client.company_name, email: client.email },
+        };
+        const hash = await computeDocHash(canonical);
+        const sig = signVerifyToken(doc.id, hash);
+        const origin = url.origin;
+        const verifyUrl = `${origin}/verify/${doc.id}?sig=${encodeURIComponent(sig)}&h=${hash}`;
+
+        const docForPdf: DocForPdf = {
+          doc_type: doc.doc_type as "quote" | "invoice",
+          doc_number: doc.doc_number,
+          issue_date: doc.issue_date,
+          due_date: doc.due_date,
+          line_items: lineItems,
+          tax_rate: Number(doc.tax_rate),
+          discount: Number(doc.discount),
+          subtotal: Number(doc.subtotal),
+          tax_amount: Number(doc.tax_amount),
+          total: Number(doc.total),
+          notes: doc.notes,
+          client,
+          verifyUrl,
+        };
+
+        // Build PDF on server using pdfmake
+        const def = await buildDef(docForPdf);
+        // Dynamic import keeps pdfmake out of the client bundle for this route
+        const pdfMakeMod = (await import("pdfmake/build/pdfmake")) as unknown as {
+          default: {
+            vfs: Record<string, string>;
+            createPdf: (def: unknown) => {
+              getBuffer: (cb: (buffer: Uint8Array) => void) => void;
+            };
+          };
+        };
+        const pdfFontsMod = (await import("pdfmake/build/vfs_fonts")) as unknown as {
+          default: { vfs?: Record<string, string>; pdfMake?: { vfs: Record<string, string> } };
+        };
+        const pdfMake = pdfMakeMod.default;
+        pdfMake.vfs = pdfFontsMod.default.vfs ?? pdfFontsMod.default.pdfMake?.vfs ?? {};
+
+        const bytes = await new Promise<Uint8Array>((resolve) => {
+          pdfMake.createPdf(def).getBuffer((buf) => resolve(buf));
+        });
+
+        const storagePath = buildDocPath(docForPdf);
+        const filename = `${doc.doc_number}.pdf`;
+        const disposition = previewMode ? "inline" : "attachment";
+
+        return new Response(new Uint8Array(bytes), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `${disposition}; filename="${filename}"`,
+            "X-Document-Path": storagePath,
+            "Cache-Control": "private, no-store",
+          },
+        });
+      },
+    },
+  },
+});

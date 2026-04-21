@@ -4,6 +4,8 @@ declare module "pdfmake/build/pdfmake" {
     createPdf: (def: unknown) => {
       download: (filename?: string) => void;
       getDataUrl: (cb: (url: string) => void) => void;
+      getBlob: (cb: (blob: Blob) => void) => void;
+      getBuffer: (cb: (buffer: Uint8Array) => void) => void;
       open: () => void;
     };
   };
