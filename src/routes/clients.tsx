@@ -163,7 +163,7 @@ export function ClientFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{initial?.id ? "Edit client" : "New client"}</DialogTitle>
         </DialogHeader>
