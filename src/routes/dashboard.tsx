@@ -50,27 +50,27 @@ function Dashboard() {
 
   return (
     <div>
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Overview</p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight">Good to see you.</h1>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight">Good to see you.</h1>
         </div>
         <Link
           to="/documents/new"
-          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-[13px] font-medium text-primary-foreground hover:opacity-90"
+          className="inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-[13px] font-medium text-primary-foreground hover:opacity-90"
         >
           <Plus className="h-3.5 w-3.5" /> New document
         </Link>
       </div>
 
-      <div className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline md:grid-cols-4">
+      <div className="mt-8 sm:mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline md:grid-cols-4">
         <Stat label="Quotations" value={stats?.quotesCount ?? "—"} />
         <Stat label="Invoices" value={stats?.invoicesCount ?? "—"} />
         <Stat label="Quoted value" value={stats ? formatMoney(stats.quoteValue) : "—"} />
         <Stat label="Invoiced value" value={stats ? formatMoney(stats.invoiceValue) : "—"} />
       </div>
 
-      <div className="mt-12">
+      <div className="mt-10 sm:mt-12">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium tracking-tight">Recent documents</h2>
           <Link to="/documents" className="text-xs text-muted-foreground hover:text-foreground">View all →</Link>
@@ -81,36 +81,38 @@ function Dashboard() {
               No documents yet. <Link to="/documents/new" className="underline underline-offset-4">Create your first</Link>.
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="border-b border-hairline bg-secondary/50">
-                <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                  <th className="px-5 py-3 text-left font-medium">Number</th>
-                  <th className="px-5 py-3 text-left font-medium">Type</th>
-                  <th className="px-5 py-3 text-left font-medium">Client</th>
-                  <th className="px-5 py-3 text-right font-medium">Total</th>
-                  <th className="w-12"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {docs.map((d) => (
-                  <tr key={d.id} className="border-b border-hairline last:border-0 hover:bg-secondary/30">
-                    <td className="px-5 py-3 font-mono text-[12px]">{d.doc_number}</td>
-                    <td className="px-5 py-3">
-                      <span className="rounded-full border border-hairline px-2 py-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
-                        {d.doc_type === "quote" ? "Quote" : "Invoice"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3">{(d.client as { company_name: string } | null)?.company_name ?? "—"}</td>
-                    <td className="px-5 py-3 text-right tabular">{formatMoney(Number(d.total))}</td>
-                    <td className="px-3 py-3 text-right">
-                      <Link to="/documents/$id" params={{ id: d.id }} className="text-muted-foreground hover:text-foreground">
-                        <ArrowUpRight className="inline h-4 w-4" />
-                      </Link>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-sm">
+                <thead className="border-b border-hairline bg-secondary/50">
+                  <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <th className="px-5 py-3 text-left font-medium">Number</th>
+                    <th className="px-5 py-3 text-left font-medium">Type</th>
+                    <th className="px-5 py-3 text-left font-medium">Client</th>
+                    <th className="px-5 py-3 text-right font-medium">Total</th>
+                    <th className="w-12"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {docs.map((d) => (
+                    <tr key={d.id} className="border-b border-hairline last:border-0 hover:bg-secondary/30">
+                      <td className="px-5 py-3 font-mono text-[12px]">{d.doc_number}</td>
+                      <td className="px-5 py-3">
+                        <span className="rounded-full border border-hairline px-2 py-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                          {d.doc_type === "quote" ? "Quote" : "Invoice"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3">{(d.client as { company_name: string } | null)?.company_name ?? "—"}</td>
+                      <td className="px-5 py-3 text-right tabular">{formatMoney(Number(d.total))}</td>
+                      <td className="px-3 py-3 text-right">
+                        <Link to="/documents/$id" params={{ id: d.id }} className="text-muted-foreground hover:text-foreground">
+                          <ArrowUpRight className="inline h-4 w-4" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

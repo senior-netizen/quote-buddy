@@ -129,22 +129,22 @@ function Documents() {
 
   return (
     <div>
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Library</p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight">Documents</h1>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight">Documents</h1>
         </div>
-        <Link to="/documents/new">
+        <Link to="/documents/new" className="w-fit">
           <Button className="rounded-full"><Plus className="mr-1.5 h-3.5 w-3.5" />New</Button>
         </Link>
       </div>
 
-      <div className="mt-8 inline-flex rounded-full border border-hairline p-0.5">
+      <div className="mt-6 sm:mt-8 inline-flex rounded-full border border-hairline p-0.5">
         {(["all", "quote", "invoice"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`rounded-full px-4 py-1.5 text-[12px] capitalize transition-colors ${
+            className={`rounded-full px-3 sm:px-4 py-1.5 text-[12px] capitalize transition-colors ${
               filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -157,61 +157,63 @@ function Documents() {
         {docs.length === 0 ? (
           <div className="px-6 py-16 text-center text-sm text-muted-foreground">No documents.</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b border-hairline bg-secondary/50">
-              <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                <th className="px-5 py-3 text-left font-medium">Number</th>
-                <th className="px-5 py-3 text-left font-medium">Type</th>
-                <th className="px-5 py-3 text-left font-medium">Client</th>
-                <th className="px-5 py-3 text-left font-medium">Issued</th>
-                <th className="px-5 py-3 text-right font-medium">Total</th>
-                <th className="px-5 py-3 text-right font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {docs.map((d) => (
-                <tr key={d.id} className="border-b border-hairline last:border-0 hover:bg-secondary/30">
-                  <td className="px-5 py-3">
-                    <Link to="/documents/$id" params={{ id: d.id }} className="font-mono text-[12px] hover:underline underline-offset-4">
-                      {d.doc_number}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className="rounded-full border border-hairline px-2 py-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
-                      {d.doc_type === "quote" ? "Quote" : "Invoice"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3">{d.client?.company_name ?? "—"}</td>
-                  <td className="px-5 py-3 text-muted-foreground">{formatDate(d.issue_date)}</td>
-                  <td className="px-5 py-3 text-right tabular">{formatMoney(Number(d.total))}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 rounded-full px-3"
-                        onClick={() => handlePreview(d)}
-                        disabled={busyId === d.id}
-                        aria-label={`Preview ${d.doc_number}`}
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 rounded-full px-3"
-                        onClick={() => handleDownload(d)}
-                        disabled={busyId === d.id}
-                        aria-label={`Download ${d.doc_number}`}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead className="border-b border-hairline bg-secondary/50">
+                <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <th className="px-5 py-3 text-left font-medium">Number</th>
+                  <th className="px-5 py-3 text-left font-medium">Type</th>
+                  <th className="px-5 py-3 text-left font-medium">Client</th>
+                  <th className="px-5 py-3 text-left font-medium">Issued</th>
+                  <th className="px-5 py-3 text-right font-medium">Total</th>
+                  <th className="px-5 py-3 text-right font-medium">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {docs.map((d) => (
+                  <tr key={d.id} className="border-b border-hairline last:border-0 hover:bg-secondary/30">
+                    <td className="px-5 py-3">
+                      <Link to="/documents/$id" params={{ id: d.id }} className="font-mono text-[12px] hover:underline underline-offset-4">
+                        {d.doc_number}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="rounded-full border border-hairline px-2 py-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {d.doc_type === "quote" ? "Quote" : "Invoice"}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">{d.client?.company_name ?? "—"}</td>
+                    <td className="px-5 py-3 text-muted-foreground">{formatDate(d.issue_date)}</td>
+                    <td className="px-5 py-3 text-right tabular">{formatMoney(Number(d.total))}</td>
+                    <td className="px-5 py-3">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 rounded-full px-3"
+                          onClick={() => handlePreview(d)}
+                          disabled={busyId === d.id}
+                          aria-label={`Preview ${d.doc_number}`}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 rounded-full px-3"
+                          onClick={() => handleDownload(d)}
+                          disabled={busyId === d.id}
+                          aria-label={`Download ${d.doc_number}`}
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -224,7 +226,7 @@ function Documents() {
           }
         }}
       >
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-[calc(100vw-1rem)] sm:max-w-4xl p-3 sm:p-6">
           <DialogHeader><DialogTitle>PDF Preview</DialogTitle></DialogHeader>
           {previewUrl && <iframe src={previewUrl} title="PDF preview" className="h-[70vh] w-full rounded-md border border-hairline" />}
         </DialogContent>
