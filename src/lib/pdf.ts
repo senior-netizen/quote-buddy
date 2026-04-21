@@ -3,6 +3,7 @@ import pdfFonts from "pdfmake/build/vfs_fonts";
 import type { TDocumentDefinitions } from "pdfmake/interfaces";
 import { BRAND } from "./brand";
 import { formatDate, formatMoney, rowTotal, type LineItem } from "./calc";
+import { LOGO_DATA_URL } from "./logoData";
 
 // Register fonts (Roboto bundled with pdfmake)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,8 +74,8 @@ function buildDef(d: DocForPdf): TDocumentDefinitions {
         columns: [
           {
             stack: [
-              { text: BRAND.short, fontSize: 22, bold: true, letterSpacing: -0.5 },
-              { text: BRAND.tagline.toUpperCase(), fontSize: 8, color: MUTED, characterSpacing: 2, margin: [0, 2, 0, 0] },
+              { image: LOGO_DATA_URL, width: 110 },
+              { text: BRAND.tagline.toUpperCase(), fontSize: 8, color: MUTED, characterSpacing: 2, margin: [0, 6, 0, 0] },
             ],
           },
           {
