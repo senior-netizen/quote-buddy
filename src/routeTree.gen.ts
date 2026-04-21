@@ -17,6 +17,7 @@ import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
 import { Route as VerifyIdRouteImport } from './routes/verify.$id'
 import { Route as DocumentsNewRouteImport } from './routes/documents.new'
 import { Route as DocumentsIdRouteImport } from './routes/documents.$id'
+import { Route as ApiDocumentsYearTypeIdRouteImport } from './routes/api.documents.$year.$type.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -58,6 +59,11 @@ const DocumentsIdRoute = DocumentsIdRouteImport.update({
   path: '/documents/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDocumentsYearTypeIdRoute = ApiDocumentsYearTypeIdRouteImport.update({
+  id: '/api/documents/$year/$type/$id',
+  path: '/api/documents/$year/$type/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/documents/new': typeof DocumentsNewRoute
   '/verify/$id': typeof VerifyIdRoute
   '/documents/': typeof DocumentsIndexRoute
+  '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/documents/new': typeof DocumentsNewRoute
   '/verify/$id': typeof VerifyIdRoute
   '/documents': typeof DocumentsIndexRoute
+  '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/documents/new': typeof DocumentsNewRoute
   '/verify/$id': typeof VerifyIdRoute
   '/documents/': typeof DocumentsIndexRoute
+  '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/documents/new'
     | '/verify/$id'
     | '/documents/'
+    | '/api/documents/$year/$type/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/documents/new'
     | '/verify/$id'
     | '/documents'
+    | '/api/documents/$year/$type/$id'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/documents/new'
     | '/verify/$id'
     | '/documents/'
+    | '/api/documents/$year/$type/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   DocumentsNewRoute: typeof DocumentsNewRoute
   VerifyIdRoute: typeof VerifyIdRoute
   DocumentsIndexRoute: typeof DocumentsIndexRoute
+  ApiDocumentsYearTypeIdRoute: typeof ApiDocumentsYearTypeIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/documents/$year/$type/$id': {
+      id: '/api/documents/$year/$type/$id'
+      path: '/api/documents/$year/$type/$id'
+      fullPath: '/api/documents/$year/$type/$id'
+      preLoaderRoute: typeof ApiDocumentsYearTypeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,7 +224,17 @@ const rootRouteChildren: RootRouteChildren = {
   DocumentsNewRoute: DocumentsNewRoute,
   VerifyIdRoute: VerifyIdRoute,
   DocumentsIndexRoute: DocumentsIndexRoute,
+  ApiDocumentsYearTypeIdRoute: ApiDocumentsYearTypeIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
