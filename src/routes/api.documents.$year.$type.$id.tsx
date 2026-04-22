@@ -109,6 +109,8 @@ export const Route = createFileRoute("/api/documents/$year/$type/$id")({
           notes: doc.notes,
           client,
           verifyUrl,
+          docHash: hash,
+          signatureId: sig,
         };
 
         // Build PDF on server using pdfmake
