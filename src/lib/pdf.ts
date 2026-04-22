@@ -24,13 +24,19 @@ export async function generatePdfBlob(d: DocForPdf): Promise<Blob> {
 /** Triggers a download in the browser using a structured filename path. */
 export async function downloadPdf(d: DocForPdf): Promise<void> {
   const blob = await generatePdfBlob(d);
-  const url = URL.createObjectURL(blob);
+  const fileBlob = blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" });
+  const filename = `${d.doc_number}.pdf`;
+  type MaybeMsNavigator = Navigator & { msSaveOrOpenBlob?: (blob: Blob, defaultName?: string) => boolean };
+  const nav = window.navigator as MaybeMsNavigator;
+  if (typeof nav.msSaveOrOpenBlob === "function") {
+    nav.msSaveOrOpenBlob(fileBlob, filename);
+    return;
+  }
+
+  const url = URL.createObjectURL(fileBlob);
   const a = document.createElement("a");
   a.href = url;
-  // Browsers strip leading directories from the suggested filename for safety,
-  // but the structured path is preserved in the metadata header used by the
-  // server route. We set both the safe filename and the structured path here.
-  a.download = `${d.doc_number}.pdf`;
+  a.download = filename;
   a.rel = "noopener";
   document.body.appendChild(a);
   a.click();
