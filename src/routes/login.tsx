@@ -26,13 +26,15 @@ function Login() {
     try {
       if (mode === "signin") {
         await signIn(email, password);
+        toast.success("Welcome back", { description: `Signed in as ${email}` });
       } else {
         await signUp(email, password);
-        toast.success("Account created. You're in.");
+        toast.success("Account created", { description: "You're all set — welcome to QuoteFlow." });
       }
       navigate({ to: "/dashboard" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Authentication failed");
+      const msg = err instanceof Error ? err.message : "Authentication failed";
+      toast.error(mode === "signin" ? "Sign in failed" : "Sign up failed", { description: msg });
     } finally {
       setBusy(false);
     }

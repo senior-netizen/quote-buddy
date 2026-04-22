@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Users, FileText, Plus, LogOut, Menu, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import squirrellLogo from "@/assets/squirrell-logo.png";
 
 const nav = [
@@ -19,8 +20,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate({ to: "/login" });
+    try {
+      await signOut();
+      toast.success("Signed out", { description: "See you soon." });
+    } catch (e) {
+      toast.error("Sign out failed", { description: e instanceof Error ? e.message : "Please try again." });
+    } finally {
+      navigate({ to: "/login" });
+    }
   };
 
   return (
