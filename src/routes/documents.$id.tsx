@@ -60,39 +60,34 @@ function Detail() {
     },
   });
 
-  /** Build the structured server URL for the document. */
-  const buildServerUrl = (d: DocFull, preview: boolean, token: string) => {
-    const year = d.issue_date.slice(0, 4);
-    const type = d.doc_type === "invoice" ? "invoices" : "quotes";
-    const qs = new URLSearchParams({ token });
-    if (preview) qs.set("preview", "1");
-    return `/api/documents/${year}/${type}/${d.id}.pdf?${qs.toString()}`;
-  };
-
-  /** Fetch the PDF from the server route as a blob, using the user's auth token. */
-  const fetchPdfBlob = async (d: DocFull, preview: boolean): Promise<Blob> => {
-    const { data: sess } = await supabase.auth.getSession();
-    const token = sess.session?.access_token;
-    if (!token) throw new Error("Not authenticated");
-    const res = await fetch(buildServerUrl(d, preview, token), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error(`Failed (${res.status})`);
-    return await res.blob();
+  /** Build a DocForPdf payload (with verify URL/hash/signature) for client-side PDF rendering. */
+  const buildDocForPdf = async (d: DocFull): Promise<DocForPdf> => {
+    const { id: docId, hash, sig } = await issueVerifyToken({ data: { id: d.id } });
+    const verifyUrl = `${window.location.origin}/verify/${docId}?sig=${encodeURIComponent(sig)}&h=${hash}`;
+    return {
+      doc_type: d.doc_type,
+      doc_number: d.doc_number,
+      issue_date: d.issue_date,
+      due_date: d.due_date,
+      line_items: d.line_items,
+      tax_rate: Number(d.tax_rate),
+      discount: Number(d.discount),
+      subtotal: Number(d.subtotal),
+      tax_amount: Number(d.tax_amount),
+      total: Number(d.total),
+      notes: d.notes,
+      client: d.client ?? { company_name: "—", address: null, email: null, phone: null },
+      verifyUrl,
+      docHash: hash,
+      signatureId: sig,
+    };
   };
 
   const handleDownload = async () => {
     if (!doc) return;
     try {
-      const blob = await fetchPdfBlob(doc, false);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${doc.doc_number}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const payload = await buildDocForPdf(doc);
+      await downloadPdf(payload);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Download failed");
     }
@@ -101,9 +96,8 @@ function Detail() {
   const handlePreview = async () => {
     if (!doc) return;
     try {
-      const blob = await fetchPdfBlob(doc, true);
-      const url = URL.createObjectURL(blob);
-      // Revoke any prior preview URL
+      const payload = await buildDocForPdf(doc);
+      const url = await openPdfPreview(payload);
       setPreviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return url;
