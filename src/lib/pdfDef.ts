@@ -24,6 +24,10 @@ export type DocForPdf = {
   };
   /** Optional verification URL — when provided, a QR code is embedded. */
   verifyUrl?: string;
+  /** SHA-256 content hash (hex). Shown in the verification block. */
+  docHash?: string;
+  /** HMAC signature ID (base64url). Shown in the verification block. */
+  signatureId?: string;
 };
 
 const INK = "#0a0a0a";
@@ -211,6 +215,18 @@ export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
                     { text: "VERIFY THIS DOCUMENT", fontSize: 8, color: MUTED, characterSpacing: 2 },
                     { text: "Scan the QR code or visit the URL below to confirm this document was issued by Squirrellabs and has not been altered.", fontSize: 9, color: INK, margin: [0, 4, 0, 6] },
                     { text: d.verifyUrl, fontSize: 8, color: MUTED, link: d.verifyUrl },
+                    ...(d.docHash
+                      ? [
+                          { text: "DOCUMENT HASH (SHA-256)", fontSize: 7, color: MUTED, characterSpacing: 1.5, margin: [0, 8, 0, 2] as [number, number, number, number] },
+                          { text: d.docHash, fontSize: 7, color: INK, font: "Roboto", characterSpacing: 0.2 },
+                        ]
+                      : []),
+                    ...(d.signatureId
+                      ? [
+                          { text: "SIGNATURE ID (HMAC-SHA256)", fontSize: 7, color: MUTED, characterSpacing: 1.5, margin: [0, 6, 0, 2] as [number, number, number, number] },
+                          { text: d.signatureId, fontSize: 7, color: INK, font: "Roboto", characterSpacing: 0.2 },
+                        ]
+                      : []),
                   ],
                 },
               ],
