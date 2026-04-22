@@ -89,8 +89,14 @@ function ResultCard({ result }: { result: VerifyResult }) {
           <Row label="Type" value={result.doc_type === "invoice" ? "Invoice" : "Quotation"} />
           <Row label="Document №" value={<span className="font-mono">{result.doc_number}</span>} />
           <Row label="Issue date" value={formatDate(result.issue_date)} />
+          <Row
+            label={result.doc_type === "invoice" ? "Due date" : "Valid until"}
+            value={result.due_date ? formatDate(result.due_date) : "—"}
+          />
           <Row label="Billed to" value={result.client_company} />
-          <Row label="Total" value={<span className="tabular">{formatMoney(result.total)}</span>} />
+          <Row label="Subtotal" value={<span className="tabular">{formatMoney(result.subtotal)}</span>} />
+          <Row label={`Tax (${result.tax_rate}%)`} value={<span className="tabular">{formatMoney(result.tax_amount)}</span>} />
+          <Row label="Total" value={<span className="tabular font-semibold">{formatMoney(result.total)}</span>} />
         </dl>
       </div>
     );

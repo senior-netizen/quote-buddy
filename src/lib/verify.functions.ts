@@ -44,7 +44,11 @@ export type VerifyResult =
       doc_type: string;
       doc_number: string;
       issue_date: string;
+      due_date: string | null;
       total: number;
+      subtotal: number;
+      tax_rate: number;
+      tax_amount: number;
       issuer: string;
       client_company: string;
     }
@@ -95,7 +99,11 @@ export const publicVerify = createServerFn({ method: "POST" })
       doc_type: doc.doc_type,
       doc_number: doc.doc_number,
       issue_date: doc.issue_date,
+      due_date: doc.due_date,
       total: Number(doc.total),
+      subtotal: Number(doc.subtotal),
+      tax_rate: Number(doc.tax_rate),
+      tax_amount: Number(doc.tax_amount),
       issuer: "Squirrellabs Technologies Pvt Ltd",
       client_company: client.company_name,
     };
