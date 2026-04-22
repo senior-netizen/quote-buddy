@@ -159,10 +159,16 @@ function Creator() {
       }
       throw new Error("Could not allocate a unique document number. Please try again.");
     },
-    onSuccess: (id) => {
+    onSuccess: async (id) => {
       toast.success("Document saved");
       const d = buildDocForPdf();
-      if (d) downloadPdf(d);
+      if (d) {
+        try {
+          await downloadPdf(d);
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Download failed");
+        }
+      }
       navigate({ to: "/documents/$id", params: { id } });
     },
     onError: (e) => {
