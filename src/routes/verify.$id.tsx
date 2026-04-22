@@ -103,13 +103,48 @@ function ResultCard({ result }: { result: VerifyResult }) {
   }
   if (result.status === "tampered") {
     return (
-      <Warn icon={<ShieldAlert className="h-5 w-5" />} tone="amber" title="Document was modified" body={result.reason} />
+      <Warn
+        icon={<ShieldAlert className="h-5 w-5" />}
+        tone="amber"
+        title="This document has been modified"
+        body="The contents of this PDF no longer match what Squirrellabs originally issued. Someone may have edited the totals, line items, dates, or client details after it was sent."
+        nextSteps={[
+          "Do not pay or act on this document.",
+          "Contact Squirrellabs directly to request a fresh, signed copy.",
+          "Compare the document number on the PDF with what your contact at Squirrellabs has on file.",
+        ]}
+        reason={result.reason}
+      />
     );
   }
   if (result.status === "not_found") {
-    return <Warn icon={<ShieldX className="h-5 w-5" />} tone="red" title="Document not found" body="No matching document is on file." />;
+    return (
+      <Warn
+        icon={<ShieldX className="h-5 w-5" />}
+        tone="red"
+        title="No matching document found"
+        body="We couldn't find a document with this ID in Squirrellabs' records. It may have been deleted, or the link may belong to a different system."
+        nextSteps={[
+          "Check that you opened the link from the original PDF — not a forwarded screenshot.",
+          "Ask the sender to re-issue the document and share a fresh verification link.",
+          "If you received this from someone claiming to be Squirrellabs, treat it as suspicious.",
+        ]}
+      />
+    );
   }
-  return <Warn icon={<ShieldX className="h-5 w-5" />} tone="red" title="Invalid verification link" body="This link is malformed or wasn't issued by Squirrellabs." />;
+  return (
+    <Warn
+      icon={<ShieldX className="h-5 w-5" />}
+      tone="red"
+      title="Invalid verification link"
+      body="This link is missing its signature, has been altered, or wasn't issued by Squirrellabs. We can't confirm the authenticity of any document from it."
+      nextSteps={[
+        "Re-open the link directly from the original PDF or QR code — copy/paste can drop characters.",
+        "If the link came from an email, check it wasn't truncated by your mail client.",
+        "Ask the sender to re-share the verification link from their Squirrellabs document.",
+      ]}
+    />
+  );
 }
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
@@ -121,7 +156,21 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function Warn({ icon, tone, title, body }: { icon: React.ReactNode; tone: "amber" | "red"; title: string; body: string }) {
+function Warn({
+  icon,
+  tone,
+  title,
+  body,
+  nextSteps,
+  reason,
+}: {
+  icon: React.ReactNode;
+  tone: "amber" | "red";
+  title: string;
+  body: string;
+  nextSteps?: string[];
+  reason?: string;
+}) {
   const cls = tone === "amber" ? "bg-amber-500/10 text-amber-500" : "bg-red-500/10 text-red-500";
   const label = tone === "amber" ? "text-amber-500" : "text-red-500";
   return (
@@ -134,6 +183,24 @@ function Warn({ icon, tone, title, body }: { icon: React.ReactNode; tone: "amber
         </div>
       </div>
       <p className="mt-6 text-sm text-muted-foreground">{body}</p>
+      {reason && (
+        <p className="mt-3 rounded-md border border-hairline bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Detail:</span> {reason}
+        </p>
+      )}
+      {nextSteps && nextSteps.length > 0 && (
+        <div className="mt-6">
+          <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">What to do next</div>
+          <ul className="mt-3 space-y-2 text-sm">
+            {nextSteps.map((step, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-foreground/60" />
+                <span>{step}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
