@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { formatDate, formatMoney, rowTotal, type LineItem } from "@/lib/calc";
 import { generateDocNumber } from "@/lib/docNumber";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Eye, Repeat } from "lucide-react";
+import { ArrowLeft, Download, Eye, Repeat, ShieldCheck } from "lucide-react";
+import { issueVerifyToken } from "@/lib/verify.functions";
 
 export const Route = createFileRoute("/documents/$id")({ component: Page });
 
@@ -111,6 +112,17 @@ function Detail() {
     }
   };
 
+  const handleVerify = async () => {
+    if (!doc) return;
+    try {
+      const { id: docId, hash, sig } = await issueVerifyToken({ data: { id: doc.id } });
+      const url = `${window.location.origin}/verify/${docId}?sig=${encodeURIComponent(sig)}&h=${hash}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not generate verification link");
+    }
+  };
+
   const convert = useMutation({
     mutationFn: async () => {
       if (!doc) throw new Error("No doc");
@@ -176,6 +188,11 @@ function Detail() {
               <span className="sm:hidden">{convert.isPending ? "…" : "Convert"}</span>
             </Button>
           )}
+          <Button variant="outline" className="rounded-full" onClick={handleVerify}>
+            <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Verify {doc.doc_type === "quote" ? "Quotation" : "Invoice"}</span>
+            <span className="sm:hidden">Verify</span>
+          </Button>
           <Button variant="outline" className="rounded-full" onClick={handlePreview}>
             <Eye className="mr-1.5 h-3.5 w-3.5" />Preview
           </Button>
