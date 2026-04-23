@@ -2,19 +2,38 @@ import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 import { buildDef, buildDocPath, type DocForPdf } from "./pdfDef";
 
-// Register fonts for pdfmake 0.3.x.
-// In this version fonts must be added via addVirtualFileSystem + addFonts.
+// Register fonts with compatibility for pdfmake browser builds.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const fontsAny = pdfFonts as any;
-pdfMake.addVirtualFileSystem(fontsAny?.default ?? fontsAny);
-pdfMake.addFonts({
-  Roboto: {
-    normal: "Roboto-Regular.ttf",
-    bold: "Roboto-Medium.ttf",
-    italics: "Roboto-Italic.ttf",
-    bolditalics: "Roboto-MediumItalic.ttf",
-  },
-});
+const pdfMakeAny = pdfMake as any;
+const resolvedFonts = fontsAny?.default ?? fontsAny;
+
+if (typeof pdfMakeAny.addVirtualFileSystem === "function") {
+  pdfMakeAny.addVirtualFileSystem(resolvedFonts);
+} else {
+  pdfMakeAny.vfs = resolvedFonts?.vfs ?? resolvedFonts?.pdfMake?.vfs ?? resolvedFonts;
+}
+
+if (typeof pdfMakeAny.addFonts === "function") {
+  pdfMakeAny.addFonts({
+    Roboto: {
+      normal: "Roboto-Regular.ttf",
+      bold: "Roboto-Medium.ttf",
+      italics: "Roboto-Italic.ttf",
+      bolditalics: "Roboto-MediumItalic.ttf",
+    },
+  });
+} else {
+  pdfMakeAny.fonts = {
+    ...(pdfMakeAny.fonts ?? {}),
+    Roboto: {
+      normal: "Roboto-Regular.ttf",
+      bold: "Roboto-Medium.ttf",
+      italics: "Roboto-Italic.ttf",
+      bolditalics: "Roboto-MediumItalic.ttf",
+    },
+  };
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export type { DocForPdf };
@@ -23,11 +42,12 @@ export { buildDocPath };
 /** Generates a Blob locally (used by Preview to render in an iframe). */
 export async function generatePdfBlob(d: DocForPdf): Promise<Blob> {
   const def = await buildDef(d);
-  const blob = await pdfMake.createPdf(def).getBlob();
-  if (!(blob instanceof Blob) || blob.size === 0) {
+  const pdfApi = (pdfMake as any).createPdf(def);
+  const blob = await Promise.resolve(pdfApi.getBlob());
+  if (!blob || typeof blob.size !== "number" || blob.size === 0) {
     throw new Error("PDF generation failed");
   }
-  return blob;
+  return blob as Blob;
 }
 
 /** Triggers a download in the browser using a structured filename path. */
