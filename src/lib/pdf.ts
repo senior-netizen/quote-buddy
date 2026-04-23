@@ -2,19 +2,19 @@ import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 import { buildDef, buildDocPath, type DocForPdf } from "./pdfDef";
 
-// Register fonts (Roboto bundled with pdfmake).
-// pdfmake's vfs_fonts module shape varies by version: sometimes it exports
-// `{ vfs: {...} }`, sometimes `{ pdfMake: { vfs: {...} } }`, and in current
-// builds it exports the font files directly as top-level keys. Resolve all three.
+// Register fonts for pdfmake 0.3.x.
+// In this version fonts must be added via addVirtualFileSystem + addFonts.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const fontsAny = pdfFonts as any;
-const resolvedVfs =
-  fontsAny?.vfs ??
-  fontsAny?.pdfMake?.vfs ??
-  fontsAny?.default?.vfs ??
-  fontsAny?.default ??
-  fontsAny;
-(pdfMake as any).vfs = resolvedVfs;
+pdfMake.addVirtualFileSystem(fontsAny?.default ?? fontsAny);
+pdfMake.addFonts({
+  Roboto: {
+    normal: "Roboto-Regular.ttf",
+    bold: "Roboto-Medium.ttf",
+    italics: "Roboto-Italic.ttf",
+    bolditalics: "Roboto-MediumItalic.ttf",
+  },
+});
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export type { DocForPdf };
@@ -23,13 +23,11 @@ export { buildDocPath };
 /** Generates a Blob locally (used by Preview to render in an iframe). */
 export async function generatePdfBlob(d: DocForPdf): Promise<Blob> {
   const def = await buildDef(d);
-  return new Promise<Blob>((resolve, reject) => {
-    try {
-      pdfMake.createPdf(def).getBlob((blob: Blob) => resolve(blob));
-    } catch (e) {
-      reject(e);
-    }
-  });
+  const blob = await pdfMake.createPdf(def).getBlob();
+  if (!(blob instanceof Blob) || blob.size === 0) {
+    throw new Error("PDF generation failed");
+  }
+  return blob;
 }
 
 /** Triggers a download in the browser using a structured filename path. */
