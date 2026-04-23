@@ -2,19 +2,38 @@ import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 import { buildDef, buildDocPath, type DocForPdf } from "./pdfDef";
 
-// Register fonts (Roboto bundled with pdfmake).
-// pdfmake's vfs_fonts module shape varies by version: sometimes it exports
-// `{ vfs: {...} }`, sometimes `{ pdfMake: { vfs: {...} } }`, and in current
-// builds it exports the font files directly as top-level keys. Resolve all three.
+// Register fonts with compatibility for pdfmake browser builds.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const fontsAny = pdfFonts as any;
-const resolvedVfs =
-  fontsAny?.vfs ??
-  fontsAny?.pdfMake?.vfs ??
-  fontsAny?.default?.vfs ??
-  fontsAny?.default ??
-  fontsAny;
-(pdfMake as any).vfs = resolvedVfs;
+const pdfMakeAny = pdfMake as any;
+const resolvedFonts = fontsAny?.default ?? fontsAny;
+
+if (typeof pdfMakeAny.addVirtualFileSystem === "function") {
+  pdfMakeAny.addVirtualFileSystem(resolvedFonts);
+} else {
+  pdfMakeAny.vfs = resolvedFonts?.vfs ?? resolvedFonts?.pdfMake?.vfs ?? resolvedFonts;
+}
+
+if (typeof pdfMakeAny.addFonts === "function") {
+  pdfMakeAny.addFonts({
+    Roboto: {
+      normal: "Roboto-Regular.ttf",
+      bold: "Roboto-Medium.ttf",
+      italics: "Roboto-Italic.ttf",
+      bolditalics: "Roboto-MediumItalic.ttf",
+    },
+  });
+} else {
+  pdfMakeAny.fonts = {
+    ...(pdfMakeAny.fonts ?? {}),
+    Roboto: {
+      normal: "Roboto-Regular.ttf",
+      bold: "Roboto-Medium.ttf",
+      italics: "Roboto-Italic.ttf",
+      bolditalics: "Roboto-MediumItalic.ttf",
+    },
+  };
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export type { DocForPdf };
@@ -23,13 +42,12 @@ export { buildDocPath };
 /** Generates a Blob locally (used by Preview to render in an iframe). */
 export async function generatePdfBlob(d: DocForPdf): Promise<Blob> {
   const def = await buildDef(d);
-  return new Promise<Blob>((resolve, reject) => {
-    try {
-      pdfMake.createPdf(def).getBlob((blob: Blob) => resolve(blob));
-    } catch (e) {
-      reject(e);
-    }
-  });
+  const pdfApi = (pdfMake as any).createPdf(def);
+  const blob = await Promise.resolve(pdfApi.getBlob());
+  if (!blob || typeof blob.size !== "number" || blob.size === 0) {
+    throw new Error("PDF generation failed");
+  }
+  return blob as Blob;
 }
 
 /** Triggers a download in the browser using a structured filename path. */
