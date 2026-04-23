@@ -82,12 +82,7 @@ export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
       ],
     }),
     content: [
-      {
-        stack: [
-          { image: LOGO_DATA_URL, width: 110, alignment: "center" },
-          { text: BRAND.tagline.toUpperCase(), fontSize: 8, color: MUTED, characterSpacing: 2, margin: [0, 6, 0, 0], alignment: "center" },
-        ],
-      },
+      { image: LOGO_DATA_URL, width: 110, alignment: "center" },
       {
         margin: [0, 16, 0, 0],
         stack: [
