@@ -2,9 +2,20 @@ import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 import { buildDef, buildDocPath, type DocForPdf } from "./pdfDef";
 
-// Register fonts (Roboto bundled with pdfmake)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(pdfMake as any).vfs = (pdfFonts as any).vfs ?? (pdfFonts as any).pdfMake?.vfs;
+// Register fonts (Roboto bundled with pdfmake).
+// pdfmake's vfs_fonts module shape varies by version: sometimes it exports
+// `{ vfs: {...} }`, sometimes `{ pdfMake: { vfs: {...} } }`, and in current
+// builds it exports the font files directly as top-level keys. Resolve all three.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const fontsAny = pdfFonts as any;
+const resolvedVfs =
+  fontsAny?.vfs ??
+  fontsAny?.pdfMake?.vfs ??
+  fontsAny?.default?.vfs ??
+  fontsAny?.default ??
+  fontsAny;
+(pdfMake as any).vfs = resolvedVfs;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export type { DocForPdf };
 export { buildDocPath };
