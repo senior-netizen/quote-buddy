@@ -1,8 +1,7 @@
 import type { TDocumentDefinitions } from "pdfmake/interfaces";
 import QRCode from "qrcode";
-import { BRAND } from "./brand";
+import type { Brand } from "./brand";
 import { formatDate, formatMoney, rowTotal, type LineItem } from "./calc";
-import { LOGO_DATA_URL } from "./logoData";
 
 export type DocForPdf = {
   doc_type: "quote" | "invoice";
@@ -22,6 +21,8 @@ export type DocForPdf = {
     email?: string | null;
     phone?: string | null;
   };
+  /** Organization brand to render in header / footer. */
+  brand: Brand;
   /** Optional verification URL — when provided, a QR code is embedded. */
   verifyUrl?: string;
   /** SHA-256 content hash (hex). Shown in the verification block. */
@@ -45,6 +46,7 @@ export function buildDocPath(d: Pick<DocForPdf, "doc_type" | "doc_number" | "iss
 export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
   const isInvoice = d.doc_type === "invoice";
   const title = isInvoice ? "Invoice" : "Quotation";
+  const brand = d.brand;
 
   const qrDataUrl = d.verifyUrl
     ? await QRCode.toDataURL(d.verifyUrl, { margin: 0, width: 220, errorCorrectionLevel: "M" })
@@ -57,6 +59,30 @@ export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
     { text: formatMoney(li.unit_price), alignment: "right", fontSize: 10 },
     { text: formatMoney(rowTotal(li)), alignment: "right", fontSize: 10 },
   ]);
+
+  // Header: logo if present, otherwise org name as wordmark
+  const header = brand.logo_data_url
+    ? { image: brand.logo_data_url, fit: [110, 110] as [number, number], alignment: "center" as const }
+    : { text: brand.name, alignment: "center" as const, fontSize: 20, bold: true, color: INK };
+
+  const fromLines: Array<{ text: string; fontSize: number; color?: string; bold?: boolean; margin?: [number, number, number, number] }> = [
+    { text: "FROM", fontSize: 8, color: MUTED, margin: [0, 0, 0, 6] },
+    { text: brand.name, bold: true, fontSize: 10 },
+  ];
+  if (brand.emails.length > 0) fromLines.push({ text: brand.emails.join("  ·  "), fontSize: 9, color: MUTED, margin: [0, 2, 0, 0] });
+  if (brand.website) fromLines.push({ text: brand.website, fontSize: 9, color: MUTED });
+  const regBits = [
+    brand.registration ? `Reg ${brand.registration}` : null,
+    brand.tin ? `TIN ${brand.tin}` : null,
+    brand.duns ? `DUNS ${brand.duns}` : null,
+  ].filter(Boolean);
+  if (regBits.length > 0) fromLines.push({ text: regBits.join("  ·  "), fontSize: 8, color: MUTED, margin: [0, 4, 0, 0] });
+  if (brand.address) fromLines.push({ text: brand.address, fontSize: 8, color: MUTED, margin: [0, 2, 0, 0] });
+  if (brand.phone) fromLines.push({ text: brand.phone, fontSize: 8, color: MUTED });
+
+  const paymentText = brand.payment_instructions
+    ? brand.payment_instructions
+    : "Bank transfer details to be provided. Please reference document number on payment.";
 
   return {
     pageSize: "A4",
@@ -71,7 +97,7 @@ export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
             {
               text: [
                 { text: "Payment instructions: ", color: MUTED, fontSize: 8 },
-                { text: "Bank transfer details to be provided. Please reference document number on payment.", fontSize: 8 },
+                { text: paymentText, fontSize: 8 },
               ],
               width: "*",
             },
@@ -82,7 +108,7 @@ export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
       ],
     }),
     content: [
-      { image: LOGO_DATA_URL, fit: [110, 110], alignment: "center" },
+      header,
       {
         margin: [0, 16, 0, 0],
         stack: [
@@ -94,16 +120,7 @@ export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
 
       {
         columns: [
-          {
-            width: "*",
-            stack: [
-              { text: "FROM", fontSize: 8, color: MUTED, characterSpacing: 1.5, margin: [0, 0, 0, 6] },
-              { text: BRAND.name, bold: true, fontSize: 10 },
-              { text: BRAND.emails.join("  ·  "), fontSize: 9, color: MUTED, margin: [0, 2, 0, 0] },
-              { text: BRAND.website, fontSize: 9, color: MUTED },
-              { text: `Reg ${BRAND.registration}  ·  TIN ${BRAND.tin}  ·  DUNS ${BRAND.duns}`, fontSize: 8, color: MUTED, margin: [0, 4, 0, 0] },
-            ],
-          },
+          { width: "*", stack: fromLines },
           {
             width: "*",
             stack: [
@@ -205,7 +222,7 @@ export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
                   margin: [16, 4, 0, 0],
                   stack: [
                     { text: "VERIFY THIS DOCUMENT", fontSize: 8, color: MUTED, characterSpacing: 2 },
-                    { text: "Scan the QR code to confirm this document was issued by Squirrellabs and has not been altered.", fontSize: 9, color: INK, margin: [0, 4, 0, 6] },
+                    { text: `Scan the QR code to confirm this document was issued by ${brand.short_name ?? brand.name} and has not been altered.`, fontSize: 9, color: INK, margin: [0, 4, 0, 6] },
                     ...(d.docHash
                       ? [
                           { text: "DOCUMENT HASH (SHA-256)", fontSize: 7, color: MUTED, characterSpacing: 1.5, margin: [0, 8, 0, 2] as [number, number, number, number] },

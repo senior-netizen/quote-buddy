@@ -548,14 +548,13 @@ export const acceptInvitation = createServerFn({ method: "POST" })
       throw new Error(`This invitation is for ${inv.email}. Sign in with that email to accept.`);
     }
 
-    // Add membership
-    await supabaseAdmin
+    // Add membership (ignore unique-violation if already member)
+    const { error: insErr } = await supabaseAdmin
       .from("organization_members")
-      .insert({ org_id: inv.org_id, user_id: context.userId, role: inv.role })
-      .select()
-      .single()
-      .then(() => null)
-      .catch(() => null); // ignore unique-violation if already member
+      .insert({ org_id: inv.org_id, user_id: context.userId, role: inv.role });
+    if (insErr && !insErr.message.includes("duplicate")) {
+      // best-effort; continue regardless
+    }
 
     // Mark invitation accepted
     await supabaseAdmin
