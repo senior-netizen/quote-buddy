@@ -1,12 +1,36 @@
-export const BRAND = {
-  name: "Squirrellabs Technologies Pvt Ltd",
-  short: "Squirrellabs",
-  tagline: "Technologies",
-  emails: ["sales@rodent.co.zw", "ndabaprinco@gmail.com"],
-  website: "www.rodent-lab.com",
-  registration: "72190A01122025",
-  tin: "2002367529",
-  duns: "631177914",
+/**
+ * Organization brand. Loaded per-active-org from `organization_profiles`.
+ * Used by the PDF renderer, verification page, and document defaults.
+ */
+export type Brand = {
+  name: string;
+  short_name: string | null;
+  logo_data_url: string | null;
+  emails: string[];
+  website: string | null;
+  registration: string | null;
+  tin: string | null;
+  duns: string | null;
+  currency: string;
+  default_tax_rate: number;
+  address: string | null;
+  phone: string | null;
+  payment_instructions: string | null;
+};
+
+/** Safe defaults when the current org has no profile filled in. */
+export const BRAND_FALLBACK: Brand = {
+  name: "Your Company",
+  short_name: null,
+  logo_data_url: null,
+  emails: [],
+  website: null,
+  registration: null,
+  tin: null,
+  duns: null,
   currency: "USD",
-  defaultTaxRate: 15,
+  default_tax_rate: 15,
+  address: null,
+  phone: null,
+  payment_instructions: null,
 };
