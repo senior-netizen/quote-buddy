@@ -9,16 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
 import { Route as VerifyIdRouteImport } from './routes/verify.$id'
+import { Route as SettingsTeamRouteImport } from './routes/settings.team'
+import { Route as SettingsOrganizationRouteImport } from './routes/settings.organization'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as DocumentsNewRouteImport } from './routes/documents.new'
 import { Route as DocumentsIdRouteImport } from './routes/documents.$id'
 import { Route as ApiDocumentsYearTypeIdRouteImport } from './routes/api.documents.$year.$type.$id'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -49,6 +58,21 @@ const VerifyIdRoute = VerifyIdRouteImport.update({
   path: '/verify/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsTeamRoute = SettingsTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsOrganizationRoute = SettingsOrganizationRouteImport.update({
+  id: '/organization',
+  path: '/organization',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocumentsNewRoute = DocumentsNewRouteImport.update({
   id: '/documents/new',
   path: '/documents/new',
@@ -70,8 +94,12 @@ export interface FileRoutesByFullPath {
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/documents/$id': typeof DocumentsIdRoute
   '/documents/new': typeof DocumentsNewRoute
+  '/invite/$token': typeof InviteTokenRoute
+  '/settings/organization': typeof SettingsOrganizationRoute
+  '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
   '/documents/': typeof DocumentsIndexRoute
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
@@ -81,8 +109,12 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/documents/$id': typeof DocumentsIdRoute
   '/documents/new': typeof DocumentsNewRoute
+  '/invite/$token': typeof InviteTokenRoute
+  '/settings/organization': typeof SettingsOrganizationRoute
+  '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
   '/documents': typeof DocumentsIndexRoute
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
@@ -93,8 +125,12 @@ export interface FileRoutesById {
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/documents/$id': typeof DocumentsIdRoute
   '/documents/new': typeof DocumentsNewRoute
+  '/invite/$token': typeof InviteTokenRoute
+  '/settings/organization': typeof SettingsOrganizationRoute
+  '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
   '/documents/': typeof DocumentsIndexRoute
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
@@ -106,8 +142,12 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/login'
+    | '/settings'
     | '/documents/$id'
     | '/documents/new'
+    | '/invite/$token'
+    | '/settings/organization'
+    | '/settings/team'
     | '/verify/$id'
     | '/documents/'
     | '/api/documents/$year/$type/$id'
@@ -117,8 +157,12 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/login'
+    | '/settings'
     | '/documents/$id'
     | '/documents/new'
+    | '/invite/$token'
+    | '/settings/organization'
+    | '/settings/team'
     | '/verify/$id'
     | '/documents'
     | '/api/documents/$year/$type/$id'
@@ -128,8 +172,12 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/login'
+    | '/settings'
     | '/documents/$id'
     | '/documents/new'
+    | '/invite/$token'
+    | '/settings/organization'
+    | '/settings/team'
     | '/verify/$id'
     | '/documents/'
     | '/api/documents/$year/$type/$id'
@@ -140,8 +188,10 @@ export interface RootRouteChildren {
   ClientsRoute: typeof ClientsRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
   DocumentsIdRoute: typeof DocumentsIdRoute
   DocumentsNewRoute: typeof DocumentsNewRoute
+  InviteTokenRoute: typeof InviteTokenRoute
   VerifyIdRoute: typeof VerifyIdRoute
   DocumentsIndexRoute: typeof DocumentsIndexRoute
   ApiDocumentsYearTypeIdRoute: typeof ApiDocumentsYearTypeIdRoute
@@ -149,6 +199,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -191,6 +248,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerifyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/team': {
+      id: '/settings/team'
+      path: '/team'
+      fullPath: '/settings/team'
+      preLoaderRoute: typeof SettingsTeamRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/organization': {
+      id: '/settings/organization'
+      path: '/organization'
+      fullPath: '/settings/organization'
+      preLoaderRoute: typeof SettingsOrganizationRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/documents/new': {
       id: '/documents/new'
       path: '/documents/new'
@@ -215,13 +293,29 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface SettingsRouteChildren {
+  SettingsOrganizationRoute: typeof SettingsOrganizationRoute
+  SettingsTeamRoute: typeof SettingsTeamRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsOrganizationRoute: SettingsOrganizationRoute,
+  SettingsTeamRoute: SettingsTeamRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClientsRoute: ClientsRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  SettingsRoute: SettingsRouteWithChildren,
   DocumentsIdRoute: DocumentsIdRoute,
   DocumentsNewRoute: DocumentsNewRoute,
+  InviteTokenRoute: InviteTokenRoute,
   VerifyIdRoute: VerifyIdRoute,
   DocumentsIndexRoute: DocumentsIndexRoute,
   ApiDocumentsYearTypeIdRoute: ApiDocumentsYearTypeIdRoute,
@@ -229,3 +323,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
