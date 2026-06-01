@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Download, Eye, Repeat, ShieldCheck } from "lucide-react";
 import { issueVerifyToken } from "@/lib/verify.functions";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
+import { useActiveOrg, profileToBrand } from "@/lib/org";
 
 export const Route = createFileRoute("/documents/$id")({ component: Page });
 
@@ -45,6 +46,7 @@ type DocFull = {
 function Detail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const { data: activeOrg } = useActiveOrg();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const { data: doc, isLoading, refetch } = useQuery({
@@ -62,8 +64,10 @@ function Detail() {
 
   /** Build a DocForPdf payload (with verify URL/hash/signature) for client-side PDF rendering. */
   const buildDocForPdf = async (d: DocFull): Promise<DocForPdf> => {
+    if (!activeOrg) throw new Error("No active organization");
     const { id: docId, hash, sig } = await issueVerifyToken({ data: { id: d.id } });
     const verifyUrl = `${window.location.origin}/verify/${docId}?sig=${encodeURIComponent(sig)}&h=${hash}`;
+    const brand = await profileToBrand(activeOrg.profile);
     return {
       doc_type: d.doc_type,
       doc_number: d.doc_number,
@@ -77,6 +81,7 @@ function Detail() {
       total: Number(d.total),
       notes: d.notes,
       client: d.client ?? { company_name: "—", address: null, email: null, phone: null },
+      brand,
       verifyUrl,
       docHash: hash,
       signatureId: sig,
@@ -121,13 +126,15 @@ function Detail() {
   const convert = useMutation({
     mutationFn: async () => {
       if (!doc) throw new Error("No doc");
+      if (!activeOrg?.org_id) throw new Error("No active organization");
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) throw new Error("Not authenticated");
-      const newNumber = await generateDocNumber("invoice");
+      const newNumber = await generateDocNumber("invoice", activeOrg.org_id);
       const { data, error } = await supabase
         .from("documents")
         .insert({
           user_id: u.user.id,
+          org_id: activeOrg.org_id,
           client_id: doc.client_id,
           doc_type: "invoice",
           doc_number: newNumber,

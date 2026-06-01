@@ -9,8 +9,7 @@ import {
   type OrgListItem,
   type OrgProfile,
 } from "./org.functions";
-import type { Brand } from "./brand";
-import { BRAND_FALLBACK } from "./brand";
+import { type Brand, BRAND_FALLBACK, urlToDataUrl } from "./brand";
 
 export type { ActiveOrg, OrgListItem, OrgProfile };
 
@@ -44,27 +43,10 @@ export function useSwitchActiveOrg() {
       await setFn({ data: { org_id } });
       await qc.invalidateQueries({ queryKey: ACTIVE_ORG_KEY });
       await qc.invalidateQueries({ queryKey: MY_ORGS_KEY });
-      await qc.invalidateQueries(); // refresh all org-scoped data
+      await qc.invalidateQueries();
     },
     [setFn, qc],
   );
-}
-
-/** Fetch a remote image URL and return a data: URL suitable for pdfmake. */
-async function urlToDataUrl(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url, { cache: "force-cache" });
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
 }
 
 /** Convert an OrgProfile into a Brand object suitable for the PDF renderer. */

@@ -34,3 +34,20 @@ export const BRAND_FALLBACK: Brand = {
   phone: null,
   payment_instructions: null,
 };
+
+/** Fetch a remote image URL and return a data: URL suitable for pdfmake. */
+export async function urlToDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { cache: "force-cache" });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}

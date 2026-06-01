@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useActiveOrg } from "@/lib/org";
 
 export const Route = createFileRoute("/clients")({ component: Page });
 
@@ -121,6 +122,7 @@ export function ClientFormDialog({
   onSaved?: (client: ClientRow) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const { data: activeOrg } = useActiveOrg();
   const [form, setForm] = useState({
     company_name: initial?.company_name ?? "",
     address: initial?.address ?? "",
@@ -144,9 +146,10 @@ export function ClientFormDialog({
       }
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) throw new Error("Not authenticated");
+      if (!activeOrg?.org_id) throw new Error("No active organization");
       const { data, error } = await supabase
         .from("clients")
-        .insert({ ...payload, user_id: u.user.id })
+        .insert({ ...payload, user_id: u.user.id, org_id: activeOrg.org_id })
         .select()
         .single();
       if (error) throw error;
