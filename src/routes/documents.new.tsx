@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Trash2, Plus } from "lucide-react";
 import { computeTotals, formatMoney, rowTotal, type LineItem } from "@/lib/calc";
 import { generateDocNumber } from "@/lib/docNumber";
-import { BRAND } from "@/lib/brand";
+import { useActiveOrg, profileToBrand } from "@/lib/org";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
 import { toast } from "sonner";
 
@@ -43,16 +43,22 @@ function plusDaysISO(days: number) {
 
 function Creator() {
   const navigate = useNavigate();
+  const { data: activeOrg } = useActiveOrg();
   const [docType, setDocType] = useState<"quote" | "invoice">("quote");
   const [docNumber, setDocNumber] = useState("");
   const [issueDate, setIssueDate] = useState(todayISO());
   const [dueDate, setDueDate] = useState(plusDaysISO(14));
   const [clientId, setClientId] = useState<string>("");
   const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, unit_price: 0 }]);
-  const [taxRate, setTaxRate] = useState<number>(BRAND.defaultTaxRate);
+  const [taxRate, setTaxRate] = useState<number>(15);
   const [discount, setDiscount] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Sync default tax rate once org loads
+  useEffect(() => {
+    if (activeOrg) setTaxRate(Number(activeOrg.profile.default_tax_rate));
+  }, [activeOrg]);
 
   const { data: clients = [], refetch: refetchClients } = useQuery({
     queryKey: ["clients"],
@@ -66,10 +72,10 @@ function Creator() {
     },
   });
 
-  // Auto-generate doc number when type changes
   useEffect(() => {
-    generateDocNumber(docType).then(setDocNumber).catch(() => setDocNumber(""));
-  }, [docType]);
+    if (!activeOrg?.org_id) return;
+    generateDocNumber(docType, activeOrg.org_id).then(setDocNumber).catch(() => setDocNumber(""));
+  }, [docType, activeOrg?.org_id]);
 
   const totals = useMemo(() => computeTotals(items, taxRate, discount), [items, taxRate, discount]);
   const client = clients.find((c) => c.id === clientId) ?? null;
@@ -79,8 +85,9 @@ function Creator() {
   const addItem = () => setItems((arr) => [...arr, { description: "", quantity: 1, unit_price: 0 }]);
   const removeItem = (i: number) => setItems((arr) => (arr.length === 1 ? arr : arr.filter((_, idx) => idx !== i)));
 
-  const buildDocForPdf = (): DocForPdf | null => {
-    if (!client) return null;
+  const buildDocForPdf = async (): Promise<DocForPdf | null> => {
+    if (!client || !activeOrg) return null;
+    const brand = await profileToBrand(activeOrg.profile);
     return {
       doc_type: docType,
       doc_number: docNumber,
@@ -97,10 +104,12 @@ function Creator() {
         email: client.email,
         phone: client.phone,
       },
+      brand,
     };
   };
 
   const validate = (): string | null => {
+    if (!activeOrg?.org_id) return "No active organization";
     if (!clientId) return "Select a client";
     if (!docNumber) return "Document number missing";
     if (items.length === 0) return "Add at least one line item";
@@ -114,6 +123,7 @@ function Creator() {
       if (err) throw new Error(err);
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) throw new Error("Not authenticated");
+      if (!activeOrg?.org_id) throw new Error("No active org");
 
       const MAX_ATTEMPTS = 5;
       let attemptNumber = docNumber;
@@ -124,6 +134,7 @@ function Creator() {
           .from("documents")
           .insert({
             user_id: u.user.id,
+            org_id: activeOrg.org_id,
             client_id: clientId,
             doc_type: docType,
             doc_number: attemptNumber,
@@ -141,17 +152,13 @@ function Creator() {
           .single();
 
         if (!error) {
-          // Sync UI state with the number that actually persisted
           if (attemptNumber !== docNumber) setDocNumber(attemptNumber);
-          if (regenerated) {
-            toast.message(`Document number reassigned to ${attemptNumber}`);
-          }
+          if (regenerated) toast.message(`Document number reassigned to ${attemptNumber}`);
           return data.id as string;
         }
 
-        // 23505 = unique_violation — regenerate and retry automatically
         if ((error as { code?: string }).code === "23505" && attempt < MAX_ATTEMPTS) {
-          attemptNumber = await generateDocNumber(docType);
+          attemptNumber = await generateDocNumber(docType, activeOrg.org_id);
           regenerated = true;
           continue;
         }
@@ -161,7 +168,7 @@ function Creator() {
     },
     onSuccess: async (id) => {
       toast.success("Document saved");
-      const d = buildDocForPdf();
+      const d = await buildDocForPdf();
       if (d) {
         try {
           await downloadPdf(d);
@@ -179,7 +186,7 @@ function Creator() {
   const handlePreview = async () => {
     const v = validate();
     if (v) return toast.error(v);
-    const d = buildDocForPdf();
+    const d = await buildDocForPdf();
     if (!d) return;
     const url = await openPdfPreview(d);
     setPreviewUrl(url);
@@ -193,7 +200,6 @@ function Creator() {
           New {docType === "quote" ? "quotation" : "invoice"}
         </h1>
 
-        {/* Type + meta */}
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Document type">
             <div className="inline-flex w-full rounded-full border border-hairline p-0.5">
@@ -222,7 +228,6 @@ function Creator() {
           </Field>
         </div>
 
-        {/* Client */}
         <div className="mt-8">
           <Field label="Client">
             <div className="flex gap-2">
@@ -245,7 +250,6 @@ function Creator() {
           </Field>
         </div>
 
-        {/* Line items */}
         <div className="mt-10">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium tracking-tight">Line items</h2>
@@ -313,7 +317,6 @@ function Creator() {
           </div>
         </div>
 
-        {/* Tax / discount */}
         <div className="mt-8 grid grid-cols-2 gap-4">
           <Field label="Tax rate (%)">
             <Input type="number" min={0} step="0.01" value={taxRate} onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)} className="tabular" />
@@ -330,7 +333,6 @@ function Creator() {
         </div>
       </div>
 
-      {/* Sticky totals */}
       <aside className="lg:sticky lg:top-20 lg:h-fit">
         <div className="rounded-2xl border border-hairline bg-card p-5 sm:p-6">
           <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Summary</div>
@@ -365,8 +367,8 @@ function Creator() {
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="ghost" onClick={() => setPreviewUrl(null)}>Close</Button>
             <Button
-              onClick={() => {
-                const d = buildDocForPdf();
+              onClick={async () => {
+                const d = await buildDocForPdf();
                 if (d) downloadPdf(d);
               }}
             >Download</Button>

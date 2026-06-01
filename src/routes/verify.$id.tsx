@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { publicVerify, type VerifyResult } from "@/lib/verify.functions";
+import { getDocumentIssuerBrand } from "@/lib/org.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { formatDate, formatMoney } from "@/lib/calc";
-import { ShieldCheck, ShieldAlert, ShieldX, Loader2 } from "lucide-react";
-import squirrellLogo from "@/assets/squirrell-logo.png";
+import { ShieldCheck, ShieldAlert, ShieldX, Loader2, Building2 } from "lucide-react";
 
 type Search = { sig?: string; h?: string };
 
@@ -14,19 +15,23 @@ export const Route = createFileRoute("/verify/$id")({
   }),
   head: () => ({
     meta: [
-      { title: "Verify Document — Squirrellabs" },
-      { name: "description", content: "Verify the authenticity of a Squirrellabs invoice or quotation." },
+      { title: "Verify Document" },
+      { name: "description", content: "Verify the authenticity of an invoice or quotation." },
       { name: "robots", content: "noindex" },
     ],
   }),
   component: VerifyPage,
 });
 
+type IssuerBrand = { name: string; short_name: string | null; website: string | null; logo_url: string | null } | null;
+
 function VerifyPage() {
   const { id } = Route.useParams();
   const { sig, h } = Route.useSearch();
   const [result, setResult] = useState<VerifyResult | null>(null);
+  const [issuer, setIssuer] = useState<IssuerBrand>(null);
   const [loading, setLoading] = useState(true);
+  const getIssuer = useServerFn(getDocumentIssuerBrand);
 
   useEffect(() => {
     let alive = true;
@@ -36,8 +41,11 @@ function VerifyPage() {
         return;
       }
       try {
-        const r = await publicVerify({ data: { id, sig, hash: h } });
-        if (alive) setResult(r);
+        const [r, b] = await Promise.all([
+          publicVerify({ data: { id, sig, hash: h } }),
+          getIssuer({ data: { id } }).catch(() => null),
+        ]);
+        if (alive) { setResult(r); setIssuer(b); }
       } catch {
         if (alive) setResult({ status: "invalid_signature" });
       } finally {
@@ -45,14 +53,21 @@ function VerifyPage() {
       }
     })();
     return () => { alive = false; };
-  }, [id, sig, h]);
+  }, [id, sig, h, getIssuer]);
+
+  const issuerName = issuer?.name ?? (result?.status === "authentic" ? result.issuer : "the issuer");
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="border-b border-hairline">
-        <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-6">
-          <img src={squirrellLogo} alt="Squirrell" className="h-8 w-auto" />
-          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Document Verification</span>
+        <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-6">
+          {issuer?.logo_url ? (
+            <img src={issuer.logo_url} alt={issuer.name} className="h-8 w-auto" />
+          ) : (
+            <Building2 className="h-5 w-5" />
+          )}
+          <span className="text-sm font-medium truncate">{issuer?.name ?? "Document"}</span>
+          <span className="ml-auto text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Verification</span>
         </div>
       </header>
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
@@ -61,17 +76,17 @@ function VerifyPage() {
             <Loader2 className="h-4 w-4 animate-spin" /> Verifying…
           </div>
         ) : (
-          <ResultCard result={result!} />
+          <ResultCard result={result!} issuerName={issuerName} />
         )}
         <p className="mt-12 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-          This page confirms a document was issued by Squirrellabs and has not been altered.
+          This page confirms a document was issued by {issuerName} and has not been altered.
         </p>
       </main>
     </div>
   );
 }
 
-function ResultCard({ result }: { result: VerifyResult }) {
+function ResultCard({ result, issuerName }: { result: VerifyResult; issuerName: string }) {
   if (result.status === "authentic") {
     return (
       <div className="rounded-2xl border border-hairline bg-card p-8">
@@ -107,11 +122,11 @@ function ResultCard({ result }: { result: VerifyResult }) {
         icon={<ShieldAlert className="h-5 w-5" />}
         tone="amber"
         title="This document has been modified"
-        body="The contents of this PDF no longer match what Squirrellabs originally issued. Someone may have edited the totals, line items, dates, or client details after it was sent."
+        body={`The contents of this PDF no longer match what ${issuerName} originally issued. Someone may have edited the totals, line items, dates, or client details after it was sent.`}
         nextSteps={[
           "Do not pay or act on this document.",
-          "Contact Squirrellabs directly to request a fresh, signed copy.",
-          "Compare the document number on the PDF with what your contact at Squirrellabs has on file.",
+          `Contact ${issuerName} directly to request a fresh, signed copy.`,
+          `Compare the document number on the PDF with what your contact at ${issuerName} has on file.`,
         ]}
         reason={result.reason}
       />
@@ -123,11 +138,11 @@ function ResultCard({ result }: { result: VerifyResult }) {
         icon={<ShieldX className="h-5 w-5" />}
         tone="red"
         title="No matching document found"
-        body="We couldn't find a document with this ID in Squirrellabs' records. It may have been deleted, or the link may belong to a different system."
+        body="We couldn't find a document with this ID. It may have been deleted, or the link may belong to a different system."
         nextSteps={[
           "Check that you opened the link from the original PDF — not a forwarded screenshot.",
           "Ask the sender to re-issue the document and share a fresh verification link.",
-          "If you received this from someone claiming to be Squirrellabs, treat it as suspicious.",
+          "If you received this from someone claiming to be the issuer, treat it as suspicious.",
         ]}
       />
     );
@@ -137,11 +152,11 @@ function ResultCard({ result }: { result: VerifyResult }) {
       icon={<ShieldX className="h-5 w-5" />}
       tone="red"
       title="Invalid verification link"
-      body="This link is missing its signature, has been altered, or wasn't issued by Squirrellabs. We can't confirm the authenticity of any document from it."
+      body="This link is missing its signature, has been altered, or wasn't issued by this system. We can't confirm the authenticity of any document from it."
       nextSteps={[
         "Re-open the link directly from the original PDF or QR code — copy/paste can drop characters.",
         "If the link came from an email, check it wasn't truncated by your mail client.",
-        "Ask the sender to re-share the verification link from their Squirrellabs document.",
+        "Ask the sender to re-share the verification link from the original document.",
       ]}
     />
   );

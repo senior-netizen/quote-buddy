@@ -12,6 +12,7 @@ import { Plus, Download, Eye, Search } from "lucide-react";
 import { toast } from "sonner";
 import { generatePdfBlob, type DocForPdf } from "@/lib/pdf";
 import { issueVerifyToken } from "@/lib/verify.functions";
+import { useActiveOrg, profileToBrand } from "@/lib/org";
 
 export const Route = createFileRoute("/documents/")({ component: Page });
 
@@ -41,6 +42,8 @@ function Documents() {
   const [search, setSearch] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const { data: activeOrg } = useActiveOrg();
+
 
   const { data: docs = [] } = useQuery({
     queryKey: ["documents", filter],
@@ -57,7 +60,7 @@ function Documents() {
   });
 
   const buildBlob = async (id: string): Promise<Blob> => {
-    // Fetch full document + client
+    if (!activeOrg) throw new Error("No active organization");
     const { data: doc, error } = await supabase
       .from("documents")
       .select("*, client:clients(company_name, address, email, phone)")
@@ -72,9 +75,9 @@ function Documents() {
       phone: string | null;
     } | null) ?? { company_name: "—", address: null, email: null, phone: null };
 
-    // Get signed verify token from server
     const { id: docId, hash, sig } = await issueVerifyToken({ data: { id } });
     const verifyUrl = `${window.location.origin}/verify/${docId}?sig=${encodeURIComponent(sig)}&h=${hash}`;
+    const brand = await profileToBrand(activeOrg.profile);
 
     const docForPdf: DocForPdf = {
       doc_type: doc.doc_type as "quote" | "invoice",
@@ -89,6 +92,7 @@ function Documents() {
       total: Number(doc.total),
       notes: doc.notes,
       client,
+      brand,
       verifyUrl,
     };
     return await generatePdfBlob(docForPdf);

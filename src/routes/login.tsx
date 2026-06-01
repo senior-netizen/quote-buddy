@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -43,10 +43,6 @@ function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <Link to="/" className="mb-12 flex items-baseline justify-center gap-2">
-          <span className="text-[17px] font-semibold tracking-tight">Squirrellabs</span>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">QuoteFlow</span>
-        </Link>
         <h1 className="text-2xl font-semibold tracking-tight">
           {mode === "signin" ? "Sign in" : "Create account"}
         </h1>
