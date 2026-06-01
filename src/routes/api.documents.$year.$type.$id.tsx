@@ -75,6 +75,42 @@ export const Route = createFileRoute("/api/documents/$year/$type/$id")({
 
         const lineItems = (doc.line_items as unknown as LineItem[]) ?? [];
 
+        // Load the issuing org's brand profile
+        const { data: orgProfile } = await supabaseAdmin
+          .from("organization_profiles")
+          .select("*")
+          .eq("org_id", doc.org_id)
+          .maybeSingle();
+
+        let logoDataUrl: string | null = null;
+        if (orgProfile?.logo_url) {
+          try {
+            const r = await fetch(orgProfile.logo_url);
+            if (r.ok) {
+              const buf = new Uint8Array(await r.arrayBuffer());
+              const ct = r.headers.get("content-type") || "image/png";
+              const b64 = Buffer.from(buf).toString("base64");
+              logoDataUrl = `data:${ct};base64,${b64}`;
+            }
+          } catch { /* ignore */ }
+        }
+
+        const brand = {
+          name: orgProfile?.name ?? "Your Company",
+          short_name: orgProfile?.short_name ?? null,
+          logo_data_url: logoDataUrl,
+          emails: orgProfile?.emails ?? [],
+          website: orgProfile?.website ?? null,
+          registration: orgProfile?.registration ?? null,
+          tin: orgProfile?.tin ?? null,
+          duns: orgProfile?.duns ?? null,
+          currency: orgProfile?.currency ?? "USD",
+          default_tax_rate: Number(orgProfile?.default_tax_rate ?? 15),
+          address: orgProfile?.address ?? null,
+          phone: orgProfile?.phone ?? null,
+          payment_instructions: orgProfile?.payment_instructions ?? null,
+        };
+
         // Build verify URL (signed, matches client behaviour)
         const canonical: CanonicalDoc = {
           doc_type: doc.doc_type,
@@ -108,6 +144,7 @@ export const Route = createFileRoute("/api/documents/$year/$type/$id")({
           total: Number(doc.total),
           notes: doc.notes,
           client,
+          brand,
           verifyUrl,
           docHash: hash,
           signatureId: sig,

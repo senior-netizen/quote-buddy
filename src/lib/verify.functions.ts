@@ -70,7 +70,7 @@ export const publicVerify = createServerFn({ method: "POST" })
     }
     const { data: doc, error } = await supabaseAdmin
       .from("documents")
-      .select("id, doc_type, doc_number, issue_date, total, line_items, tax_rate, discount, subtotal, tax_amount, due_date, notes, client:clients(company_name, email)")
+      .select("id, doc_type, doc_number, issue_date, total, line_items, tax_rate, discount, subtotal, tax_amount, due_date, notes, org_id, client:clients(company_name, email)")
       .eq("id", data.id)
       .maybeSingle();
     if (error || !doc) return { status: "not_found" };
@@ -94,6 +94,13 @@ export const publicVerify = createServerFn({ method: "POST" })
     if (currentHash !== data.hash) {
       return { status: "tampered", reason: "Document contents differ from the issued version." };
     }
+    // Resolve issuer from the org_id of the doc
+    const { data: orgProf } = await supabaseAdmin
+      .from("organization_profiles")
+      .select("name")
+      .eq("org_id", doc.org_id)
+      .maybeSingle();
+    const issuer = orgProf?.name ?? "Unknown issuer";
     return {
       status: "authentic",
       doc_type: doc.doc_type,
@@ -104,7 +111,7 @@ export const publicVerify = createServerFn({ method: "POST" })
       subtotal: Number(doc.subtotal),
       tax_rate: Number(doc.tax_rate),
       tax_amount: Number(doc.tax_amount),
-      issuer: "Squirrellabs Technologies Pvt Ltd",
+      issuer,
       client_company: client.company_name,
     };
   });
