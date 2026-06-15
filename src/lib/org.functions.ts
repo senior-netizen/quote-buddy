@@ -17,6 +17,7 @@ export type OrgProfile = {
   registration: string | null;
   tin: string | null;
   duns: string | null;
+  praz: string | null;
   currency: string;
   default_tax_rate: number;
   address: string | null;
@@ -130,6 +131,7 @@ async function loadActiveOrg(userId: string): Promise<ActiveOrg | null> {
     registration: null,
     tin: null,
     duns: null,
+    praz: null,
     currency: "USD",
     default_tax_rate: 15,
     address: null,
@@ -219,6 +221,7 @@ const ProfileUpdateSchema = z.object({
   registration: z.string().trim().max(80).optional().nullable(),
   tin: z.string().trim().max(80).optional().nullable(),
   duns: z.string().trim().max(80).optional().nullable(),
+  praz: z.string().trim().max(80).optional().nullable(),
   currency: z.string().trim().min(1).max(8),
   default_tax_rate: z.number().min(0).max(100),
   address: z.string().trim().max(500).optional().nullable(),
@@ -260,6 +263,7 @@ export const updateOrganizationProfile = createServerFn({ method: "POST" })
         registration: data.patch.registration ?? null,
         tin: data.patch.tin ?? null,
         duns: data.patch.duns ?? null,
+        praz: data.patch.praz ?? null,
         currency: data.patch.currency,
         default_tax_rate: data.patch.default_tax_rate,
         address: data.patch.address ?? null,

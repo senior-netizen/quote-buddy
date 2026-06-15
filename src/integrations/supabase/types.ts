@@ -232,6 +232,7 @@ export type Database = {
           org_id: string
           payment_instructions: string | null
           phone: string | null
+          praz: string | null
           registration: string | null
           short_name: string | null
           tin: string | null
@@ -250,6 +251,7 @@ export type Database = {
           org_id: string
           payment_instructions?: string | null
           phone?: string | null
+          praz?: string | null
           registration?: string | null
           short_name?: string | null
           tin?: string | null
@@ -268,6 +270,7 @@ export type Database = {
           org_id?: string
           payment_instructions?: string | null
           phone?: string | null
+          praz?: string | null
           registration?: string | null
           short_name?: string | null
           tin?: string | null
