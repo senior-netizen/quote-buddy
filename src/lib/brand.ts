@@ -11,6 +11,7 @@ export type Brand = {
   registration: string | null;
   tin: string | null;
   duns: string | null;
+  praz: string | null;
   currency: string;
   default_tax_rate: number;
   address: string | null;
@@ -28,6 +29,7 @@ export const BRAND_FALLBACK: Brand = {
   registration: null,
   tin: null,
   duns: null,
+  praz: null,
   currency: "USD",
   default_tax_rate: 15,
   address: null,

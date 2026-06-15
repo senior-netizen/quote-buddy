@@ -28,6 +28,7 @@ function OrgSettings() {
     registration: "",
     tin: "",
     duns: "",
+    praz: "",
     currency: "USD",
     default_tax_rate: 15,
     address: "",
@@ -48,6 +49,7 @@ function OrgSettings() {
       registration: p.registration ?? "",
       tin: p.tin ?? "",
       duns: p.duns ?? "",
+      praz: p.praz ?? "",
       currency: p.currency,
       default_tax_rate: Number(p.default_tax_rate),
       address: p.address ?? "",
@@ -77,6 +79,7 @@ function OrgSettings() {
             registration: form.registration.trim() || null,
             tin: form.tin.trim() || null,
             duns: form.duns.trim() || null,
+            praz: form.praz.trim() || null,
             currency: form.currency.trim().toUpperCase(),
             default_tax_rate: Number(form.default_tax_rate) || 0,
             address: form.address.trim() || null,
@@ -192,6 +195,9 @@ function OrgSettings() {
           </Field>
           <Field label="DUNS">
             <Input value={form.duns} onChange={(e) => setForm({ ...form, duns: e.target.value })} disabled={!canEdit} />
+          </Field>
+          <Field label="PRAZ">
+            <Input value={form.praz} onChange={(e) => setForm({ ...form, praz: e.target.value })} disabled={!canEdit} placeholder="PR2651456473" />
           </Field>
           <Field label="Phone">
             <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} disabled={!canEdit} />

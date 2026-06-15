@@ -61,6 +61,7 @@ export async function profileToBrand(profile: OrgProfile): Promise<Brand> {
     registration: profile.registration,
     tin: profile.tin,
     duns: profile.duns,
+    praz: profile.praz,
     currency: profile.currency,
     default_tax_rate: Number(profile.default_tax_rate),
     address: profile.address,

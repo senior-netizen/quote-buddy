@@ -75,6 +75,7 @@ export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
     brand.registration ? `Reg ${brand.registration}` : null,
     brand.tin ? `TIN ${brand.tin}` : null,
     brand.duns ? `DUNS ${brand.duns}` : null,
+    brand.praz ? `PRAZ ${brand.praz}` : null,
   ].filter(Boolean);
   if (regBits.length > 0) fromLines.push({ text: regBits.join("  ·  "), fontSize: 8, color: MUTED, margin: [0, 4, 0, 0] });
   if (brand.address) fromLines.push({ text: brand.address, fontSize: 8, color: MUTED, margin: [0, 2, 0, 0] });
