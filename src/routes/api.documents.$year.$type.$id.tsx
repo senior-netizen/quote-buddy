@@ -104,6 +104,7 @@ export const Route = createFileRoute("/api/documents/$year/$type/$id")({
           registration: orgProfile?.registration ?? null,
           tin: orgProfile?.tin ?? null,
           duns: orgProfile?.duns ?? null,
+          praz: orgProfile?.praz ?? null,
           currency: orgProfile?.currency ?? "USD",
           default_tax_rate: Number(orgProfile?.default_tax_rate ?? 15),
           address: orgProfile?.address ?? null,
