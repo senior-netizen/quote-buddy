@@ -172,6 +172,20 @@ function OrgSettings() {
         </div>
       </section>
 
+      {form.praz && (
+        <section className="rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-primary/70">PRAZ Registration Number</p>
+              <p className="mt-1 text-xl font-bold tracking-tight text-foreground">{form.praz}</p>
+            </div>
+            <div className="hidden rounded-md bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary sm:block">
+              Verified Contractor
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="space-y-4">
         <h2 className="text-sm font-medium">Identity</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
