@@ -22,13 +22,14 @@ export const Route = createFileRoute("/api/documents/$year/$type/$id")({
         const idRaw = params.id.endsWith(".pdf") ? params.id.slice(0, -4) : params.id;
         const previewMode = new URL(request.url).searchParams.get("preview") === "1";
 
-        // Auth: Bearer token in header OR ?token= query (for iframe/anchor use)
+        // Auth: Bearer token in Authorization header only.
+        // Never accept the JWT via query string — it would leak into access
+        // logs, browser history, and Referer headers.
         const url = new URL(request.url);
-        const queryToken = url.searchParams.get("token");
         const authHeader = request.headers.get("authorization");
         const token = authHeader?.startsWith("Bearer ")
           ? authHeader.slice("Bearer ".length)
-          : queryToken;
+          : null;
 
         if (!token) {
           return new Response("Unauthorized", { status: 401 });
