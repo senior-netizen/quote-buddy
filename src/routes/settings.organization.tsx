@@ -15,7 +15,6 @@ export const Route = createFileRoute("/settings/organization")({ component: OrgS
 function OrgSettings() {
   const { data: activeOrg, isLoading } = useActiveOrg();
   const qc = useQueryClient();
-  const updateFn = useServerFn(updateOrganizationProfile);
 
   const [form, setForm] = useState({
     name: "",
