@@ -196,9 +196,6 @@ function OrgSettings() {
           <Field label="DUNS">
             <Input value={form.duns} onChange={(e) => setForm({ ...form, duns: e.target.value })} disabled={!canEdit} />
           </Field>
-          <Field label="PRAZ">
-            <Input value={form.praz} onChange={(e) => setForm({ ...form, praz: e.target.value })} disabled={!canEdit} placeholder="PR2651456473" />
-          </Field>
           <Field label="Phone">
             <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} disabled={!canEdit} />
           </Field>
