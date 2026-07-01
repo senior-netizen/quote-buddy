@@ -1,20 +1,23 @@
 import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { computeDocHash, type CanonicalDoc } from "@/lib/docHash";
 import { signVerifyToken, verifyToken } from "@/lib/verifySign.server";
 import type { LineItem } from "@/lib/calc";
 
-/** Issue a signed verification payload for a document the caller can prove they own (by id). */
+/** Issue a signed verification payload for a document the caller owns. */
 export const issueVerifyToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => {
     if (!d?.id || typeof d.id !== "string" || d.id.length > 64) throw new Error("Invalid id");
     return d;
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { data: doc, error } = await supabaseAdmin
       .from("documents")
-      .select("id, doc_type, doc_number, issue_date, due_date, line_items, tax_rate, discount, subtotal, tax_amount, total, notes, client:clients(company_name, email)")
+      .select("id, doc_type, doc_number, issue_date, due_date, line_items, tax_rate, discount, subtotal, tax_amount, total, notes, user_id, client:clients(company_name, email)")
       .eq("id", data.id)
+      .eq("user_id", context.userId)
       .maybeSingle();
     if (error || !doc) throw new Error("Document not found");
 
