@@ -64,31 +64,39 @@ function OrgSettings() {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-      await updateFn({
-        data: {
-          org_id: activeOrg.org_id,
-          patch: {
-            name: form.name.trim(),
-            short_name: form.short_name.trim() || null,
-            logo_url: form.logo_url.trim() || null,
-            emails,
-            website: form.website.trim() || null,
-            registration: form.registration.trim() || null,
-            tin: form.tin.trim() || null,
-            duns: form.duns.trim() || null,
-            praz: form.praz.trim() || null,
-            currency: form.currency.trim().toUpperCase(),
-            default_tax_rate: Number(form.default_tax_rate) || 0,
-            address: form.address.trim() || null,
-            phone: form.phone.trim() || null,
-            payment_instructions: form.payment_instructions.trim() || null,
-          },
-        },
-      });
+      const name = form.name.trim();
+      if (!name) throw new Error("Company name is required");
+      const patch = {
+        name,
+        short_name: form.short_name.trim() || null,
+        logo_url: form.logo_url.trim() || null,
+        emails,
+        website: form.website.trim() || null,
+        registration: form.registration.trim() || null,
+        tin: form.tin.trim() || null,
+        duns: form.duns.trim() || null,
+        praz: form.praz.trim() || null,
+        currency: (form.currency.trim() || "USD").toUpperCase(),
+        default_tax_rate: Number(form.default_tax_rate) || 0,
+        address: form.address.trim() || null,
+        phone: form.phone.trim() || null,
+        payment_instructions: form.payment_instructions.trim() || null,
+      };
+      const { error: pErr } = await supabase
+        .from("organization_profiles")
+        .update(patch)
+        .eq("org_id", activeOrg.org_id);
+      if (pErr) throw new Error(pErr.message);
+      const { error: oErr } = await supabase
+        .from("organizations")
+        .update({ name })
+        .eq("id", activeOrg.org_id);
+      if (oErr) throw new Error(oErr.message);
     },
     onSuccess: async () => {
       toast.success("Saved");
       await qc.invalidateQueries({ queryKey: ["active-org"] });
+      await qc.invalidateQueries({ queryKey: ["my-orgs"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
   });
