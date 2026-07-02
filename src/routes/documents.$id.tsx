@@ -199,6 +199,11 @@ function Detail() {
               <span className="sm:hidden">{convert.isPending ? "…" : "Convert"}</span>
             </Button>
           )}
+          <Link to="/documents/$id/edit" params={{ id: doc.id }}>
+            <Button variant="outline" className="rounded-full">
+              <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
+            </Button>
+          </Link>
           <Button variant="outline" className="rounded-full" onClick={handleVerify}>
             <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
             <span className="hidden sm:inline">Verify {doc.doc_type === "quote" ? "Quotation" : "Invoice"}</span>
