@@ -14,7 +14,7 @@ import { issueVerifyToken } from "@/lib/verify.functions";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
 import { useActiveOrg, profileToBrand } from "@/lib/org";
 
-export const Route = createFileRoute("/documents/$id")({ component: Page });
+export const Route = createFileRoute("/documents/$id/")({ component: Page });
 
 function Page() {
   return (
