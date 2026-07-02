@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { formatDate, formatMoney, rowTotal, type LineItem } from "@/lib/calc";
 import { generateDocNumber } from "@/lib/docNumber";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Eye, Repeat, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Download, Eye, Repeat, ShieldCheck, Pencil } from "lucide-react";
 import { issueVerifyToken } from "@/lib/verify.functions";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
 import { useActiveOrg, profileToBrand } from "@/lib/org";
