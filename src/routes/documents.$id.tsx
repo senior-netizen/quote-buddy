@@ -65,9 +65,18 @@ function Detail() {
   /** Build a DocForPdf payload (with verify URL/hash/signature) for client-side PDF rendering. */
   const buildDocForPdf = async (d: DocFull): Promise<DocForPdf> => {
     if (!activeOrg) throw new Error("No active organization");
-    const { id: docId, hash, sig } = await issueVerifyToken({ data: { id: d.id } });
-    const verifyUrl = `${window.location.origin}/verify/${docId}?sig=${encodeURIComponent(sig)}&h=${hash}`;
     const brand = await profileToBrand(activeOrg.profile);
+    let verifyUrl: string | undefined;
+    let hash: string | undefined;
+    let sig: string | undefined;
+    try {
+      const t = await issueVerifyToken({ data: { id: d.id } });
+      hash = t.hash;
+      sig = t.sig;
+      verifyUrl = `${window.location.origin}/verify/${t.id}?sig=${encodeURIComponent(t.sig)}&h=${t.hash}`;
+    } catch (e) {
+      console.warn("Verify token issuance failed; generating PDF without QR", e);
+    }
     return {
       doc_type: d.doc_type,
       doc_number: d.doc_number,
