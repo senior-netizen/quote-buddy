@@ -21,6 +21,7 @@ import { Route as SettingsOrganizationRouteImport } from './routes/settings.orga
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as DocumentsNewRouteImport } from './routes/documents.new'
 import { Route as DocumentsIdRouteImport } from './routes/documents.$id'
+import { Route as DocumentsIdEditRouteImport } from './routes/documents.$id.edit'
 import { Route as ApiDocumentsYearTypeIdRouteImport } from './routes/api.documents.$year.$type.$id'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -83,6 +84,11 @@ const DocumentsIdRoute = DocumentsIdRouteImport.update({
   path: '/documents/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocumentsIdEditRoute = DocumentsIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => DocumentsIdRoute,
+} as any)
 const ApiDocumentsYearTypeIdRoute = ApiDocumentsYearTypeIdRouteImport.update({
   id: '/api/documents/$year/$type/$id',
   path: '/api/documents/$year/$type/$id',
@@ -95,13 +101,14 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRouteWithChildren
-  '/documents/$id': typeof DocumentsIdRoute
+  '/documents/$id': typeof DocumentsIdRouteWithChildren
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
   '/settings/organization': typeof SettingsOrganizationRoute
   '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
   '/documents/': typeof DocumentsIndexRoute
+  '/documents/$id/edit': typeof DocumentsIdEditRoute
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
 }
 export interface FileRoutesByTo {
@@ -110,13 +117,14 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRouteWithChildren
-  '/documents/$id': typeof DocumentsIdRoute
+  '/documents/$id': typeof DocumentsIdRouteWithChildren
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
   '/settings/organization': typeof SettingsOrganizationRoute
   '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
   '/documents': typeof DocumentsIndexRoute
+  '/documents/$id/edit': typeof DocumentsIdEditRoute
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
 }
 export interface FileRoutesById {
@@ -126,13 +134,14 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRouteWithChildren
-  '/documents/$id': typeof DocumentsIdRoute
+  '/documents/$id': typeof DocumentsIdRouteWithChildren
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
   '/settings/organization': typeof SettingsOrganizationRoute
   '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
   '/documents/': typeof DocumentsIndexRoute
+  '/documents/$id/edit': typeof DocumentsIdEditRoute
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
 }
 export interface FileRouteTypes {
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/settings/team'
     | '/verify/$id'
     | '/documents/'
+    | '/documents/$id/edit'
     | '/api/documents/$year/$type/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/settings/team'
     | '/verify/$id'
     | '/documents'
+    | '/documents/$id/edit'
     | '/api/documents/$year/$type/$id'
   id:
     | '__root__'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/settings/team'
     | '/verify/$id'
     | '/documents/'
+    | '/documents/$id/edit'
     | '/api/documents/$year/$type/$id'
   fileRoutesById: FileRoutesById
 }
@@ -189,7 +201,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRouteWithChildren
-  DocumentsIdRoute: typeof DocumentsIdRoute
+  DocumentsIdRoute: typeof DocumentsIdRouteWithChildren
   DocumentsNewRoute: typeof DocumentsNewRoute
   InviteTokenRoute: typeof InviteTokenRoute
   VerifyIdRoute: typeof VerifyIdRoute
@@ -283,6 +295,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/documents/$id/edit': {
+      id: '/documents/$id/edit'
+      path: '/edit'
+      fullPath: '/documents/$id/edit'
+      preLoaderRoute: typeof DocumentsIdEditRouteImport
+      parentRoute: typeof DocumentsIdRoute
+    }
     '/api/documents/$year/$type/$id': {
       id: '/api/documents/$year/$type/$id'
       path: '/api/documents/$year/$type/$id'
@@ -307,13 +326,25 @@ const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
   SettingsRouteChildren,
 )
 
+interface DocumentsIdRouteChildren {
+  DocumentsIdEditRoute: typeof DocumentsIdEditRoute
+}
+
+const DocumentsIdRouteChildren: DocumentsIdRouteChildren = {
+  DocumentsIdEditRoute: DocumentsIdEditRoute,
+}
+
+const DocumentsIdRouteWithChildren = DocumentsIdRoute._addFileChildren(
+  DocumentsIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClientsRoute: ClientsRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRouteWithChildren,
-  DocumentsIdRoute: DocumentsIdRoute,
+  DocumentsIdRoute: DocumentsIdRouteWithChildren,
   DocumentsNewRoute: DocumentsNewRoute,
   InviteTokenRoute: InviteTokenRoute,
   VerifyIdRoute: VerifyIdRoute,

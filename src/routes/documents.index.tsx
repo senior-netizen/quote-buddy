@@ -75,8 +75,13 @@ function Documents() {
       phone: string | null;
     } | null) ?? { company_name: "—", address: null, email: null, phone: null };
 
-    const { id: docId, hash, sig } = await issueVerifyToken({ data: { id } });
-    const verifyUrl = `${window.location.origin}/verify/${docId}?sig=${encodeURIComponent(sig)}&h=${hash}`;
+    const { id: docId, hash, sig } = await issueVerifyToken({ data: { id } }).catch((e) => {
+      console.warn("Verify token issuance failed; generating PDF without QR", e);
+      return { id: "", hash: "", sig: "" };
+    });
+    const verifyUrl = docId
+      ? `${window.location.origin}/verify/${docId}?sig=${encodeURIComponent(sig)}&h=${hash}`
+      : undefined;
     const brand = await profileToBrand(activeOrg.profile);
 
     const docForPdf: DocForPdf = {

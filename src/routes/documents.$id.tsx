@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { formatDate, formatMoney, rowTotal, type LineItem } from "@/lib/calc";
 import { generateDocNumber } from "@/lib/docNumber";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Eye, Repeat, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Download, Eye, Repeat, ShieldCheck, Pencil } from "lucide-react";
 import { issueVerifyToken } from "@/lib/verify.functions";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
 import { useActiveOrg, profileToBrand } from "@/lib/org";
@@ -65,9 +65,18 @@ function Detail() {
   /** Build a DocForPdf payload (with verify URL/hash/signature) for client-side PDF rendering. */
   const buildDocForPdf = async (d: DocFull): Promise<DocForPdf> => {
     if (!activeOrg) throw new Error("No active organization");
-    const { id: docId, hash, sig } = await issueVerifyToken({ data: { id: d.id } });
-    const verifyUrl = `${window.location.origin}/verify/${docId}?sig=${encodeURIComponent(sig)}&h=${hash}`;
     const brand = await profileToBrand(activeOrg.profile);
+    let verifyUrl: string | undefined;
+    let hash: string | undefined;
+    let sig: string | undefined;
+    try {
+      const t = await issueVerifyToken({ data: { id: d.id } });
+      hash = t.hash;
+      sig = t.sig;
+      verifyUrl = `${window.location.origin}/verify/${t.id}?sig=${encodeURIComponent(t.sig)}&h=${t.hash}`;
+    } catch (e) {
+      console.warn("Verify token issuance failed; generating PDF without QR", e);
+    }
     return {
       doc_type: d.doc_type,
       doc_number: d.doc_number,
@@ -190,6 +199,11 @@ function Detail() {
               <span className="sm:hidden">{convert.isPending ? "…" : "Convert"}</span>
             </Button>
           )}
+          <Link to="/documents/$id/edit" params={{ id: doc.id }}>
+            <Button variant="outline" className="rounded-full">
+              <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
+            </Button>
+          </Link>
           <Button variant="outline" className="rounded-full" onClick={handleVerify}>
             <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
             <span className="hidden sm:inline">Verify {doc.doc_type === "quote" ? "Quotation" : "Invoice"}</span>
