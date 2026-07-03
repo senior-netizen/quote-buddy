@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DevelopersRouteImport } from './routes/developers'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as IndexRouteImport } from './routes/index'
@@ -39,6 +40,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevelopersRoute = DevelopersRouteImport.update({
+  id: '/developers',
+  path: '/developers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
+  '/developers': typeof DevelopersRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRouteWithChildren
   '/documents/new': typeof DocumentsNewRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
+  '/developers': typeof DevelopersRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRouteWithChildren
   '/documents/new': typeof DocumentsNewRoute
@@ -189,6 +197,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
+  '/developers': typeof DevelopersRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRouteWithChildren
   '/documents/new': typeof DocumentsNewRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/'
     | '/clients'
     | '/dashboard'
+    | '/developers'
     | '/login'
     | '/settings'
     | '/documents/new'
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/'
     | '/clients'
     | '/dashboard'
+    | '/developers'
     | '/login'
     | '/settings'
     | '/documents/new'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/'
     | '/clients'
     | '/dashboard'
+    | '/developers'
     | '/login'
     | '/settings'
     | '/documents/new'
@@ -284,6 +296,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ClientsRoute: typeof ClientsRoute
   DashboardRoute: typeof DashboardRoute
+  DevelopersRoute: typeof DevelopersRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   DocumentsNewRoute: typeof DocumentsNewRoute
@@ -312,6 +325,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/developers': {
+      id: '/developers'
+      path: '/developers'
+      fullPath: '/developers'
+      preLoaderRoute: typeof DevelopersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -506,6 +526,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClientsRoute: ClientsRoute,
   DashboardRoute: DashboardRoute,
+  DevelopersRoute: DevelopersRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRouteWithChildren,
   DocumentsNewRoute: DocumentsNewRoute,
