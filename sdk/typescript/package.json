@@ -1,0 +1,11 @@
+{
+  "name": "@quotescribe/sdk",
+  "version": "0.1.0",
+  "description": "Official TypeScript SDK for the QuoteScribe API — manage clients, quotes, and invoices programmatically.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": ["src", "README.md"],
+  "keywords": ["quotescribe", "invoicing", "quotes", "sdk", "api"],
+  "license": "MIT"
+}

@@ -21,6 +21,7 @@ function SettingsInner() {
   const tabs = [
     { to: "/settings/organization", label: "Organization" },
     { to: "/settings/team", label: "Team" },
+    { to: "/settings/api", label: "API" },
   ] as const;
   return (
     <div>
