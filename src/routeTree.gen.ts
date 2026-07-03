@@ -18,6 +18,7 @@ import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
 import { Route as VerifyIdRouteImport } from './routes/verify.$id'
 import { Route as SettingsTeamRouteImport } from './routes/settings.team'
 import { Route as SettingsOrganizationRouteImport } from './routes/settings.organization'
+import { Route as SettingsApiRouteImport } from './routes/settings.api'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as DocumentsNewRouteImport } from './routes/documents.new'
 import { Route as DocumentsIdIndexRouteImport } from './routes/documents.$id.index'
@@ -73,6 +74,11 @@ const SettingsTeamRoute = SettingsTeamRouteImport.update({
 const SettingsOrganizationRoute = SettingsOrganizationRouteImport.update({
   id: '/organization',
   path: '/organization',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsApiRoute = SettingsApiRouteImport.update({
+  id: '/api',
+  path: '/api',
   getParentRoute: () => SettingsRoute,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -140,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRouteWithChildren
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/settings/api': typeof SettingsApiRoute
   '/settings/organization': typeof SettingsOrganizationRoute
   '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
@@ -162,6 +169,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRouteWithChildren
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/settings/api': typeof SettingsApiRoute
   '/settings/organization': typeof SettingsOrganizationRoute
   '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
@@ -185,6 +193,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRouteWithChildren
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/settings/api': typeof SettingsApiRoute
   '/settings/organization': typeof SettingsOrganizationRoute
   '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/documents/new'
     | '/invite/$token'
+    | '/settings/api'
     | '/settings/organization'
     | '/settings/team'
     | '/verify/$id'
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/documents/new'
     | '/invite/$token'
+    | '/settings/api'
     | '/settings/organization'
     | '/settings/team'
     | '/verify/$id'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/documents/new'
     | '/invite/$token'
+    | '/settings/api'
     | '/settings/organization'
     | '/settings/team'
     | '/verify/$id'
@@ -351,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsOrganizationRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/api': {
+      id: '/settings/api'
+      path: '/api'
+      fullPath: '/settings/api'
+      preLoaderRoute: typeof SettingsApiRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/invite/$token': {
       id: '/invite/$token'
       path: '/invite/$token'
@@ -432,11 +451,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface SettingsRouteChildren {
+  SettingsApiRoute: typeof SettingsApiRoute
   SettingsOrganizationRoute: typeof SettingsOrganizationRoute
   SettingsTeamRoute: typeof SettingsTeamRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsApiRoute: SettingsApiRoute,
   SettingsOrganizationRoute: SettingsOrganizationRoute,
   SettingsTeamRoute: SettingsTeamRoute,
 }
