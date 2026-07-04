@@ -93,7 +93,33 @@ function DevelopersPage() {
           <Endpoint method="PATCH" path="/documents/{id}" desc="Amend a document. Totals recomputed automatically." />
           <Endpoint method="DELETE" path="/documents/{id}" desc="Delete a document." />
           <Endpoint method="GET" path="/documents/{id}/verify" desc="Get a signed verification URL for a document." />
+          <Endpoint method="GET" path="/documents/{id}/pdf" desc="Download the rendered PDF (application/pdf)." />
         </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="text-xl font-semibold">OpenAPI spec</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Import the spec into Postman, Insomnia, or any OpenAPI codegen tool.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <a
+            href={`${base}/api/public/v1/openapi.json`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm underline"
+          >
+            openapi.json
+          </a>
+          <span className="text-muted-foreground text-sm">·</span>
+          <a
+            href={`https://petstore.swagger.io/?url=${encodeURIComponent(`${base}/api/public/v1/openapi.json`)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm underline"
+          >
+            Open in Swagger UI
+          </a>
       </section>
 
       <section className="mt-12">
