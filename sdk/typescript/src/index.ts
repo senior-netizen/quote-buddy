@@ -133,6 +133,10 @@ export class QuoteScribeClient {
     update: (id: string, input: UpdateDocumentInput) => Promise<Single<Document>>;
     delete: (id: string) => Promise<{ deleted: true }>;
     verify: (id: string) => Promise<VerifyPayload>;
+    /** Direct URL developers can pass to a browser (still requires the Bearer header when fetched). */
+    pdfUrl: (id: string, opts?: { disposition?: "inline" | "attachment" }) => string;
+    /** Fetch the rendered PDF bytes. */
+    downloadPdf: (id: string, opts?: { disposition?: "inline" | "attachment" }) => Promise<Uint8Array>;
   };
 
   organization: {
