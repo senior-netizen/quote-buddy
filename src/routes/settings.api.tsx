@@ -213,9 +213,13 @@ function ApiSettingsPage() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium truncate">{k.name}</span>
-                    {k.revoked_at && (
+                    {k.revoked_at ? (
                       <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-destructive/10 text-destructive">
                         revoked
+                      </span>
+                    ) : (
+                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
+                        active
                       </span>
                     )}
                   </div>
@@ -225,13 +229,25 @@ function ApiSettingsPage() {
                   <div className="text-[11px] text-muted-foreground mt-0.5">
                     Created {new Date(k.created_at).toLocaleDateString()}
                     {k.last_used_at ? ` · last used ${new Date(k.last_used_at).toLocaleDateString()}` : " · never used"}
+                    {k.revoked_at ? ` · revoked ${new Date(k.revoked_at).toLocaleDateString()}` : ""}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
                   {!k.revoked_at && (
-                    <Button variant="outline" size="sm" onClick={() => revoke.mutate(k.id)}>
-                      Revoke
-                    </Button>
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => rotate.mutate(k)}
+                        disabled={rotate.isPending}
+                        title="Issue a replacement key. The old one keeps working until you revoke it."
+                      >
+                        Rotate
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => revoke.mutate(k.id)}>
+                        Revoke
+                      </Button>
+                    </>
                   )}
                   <Button variant="ghost" size="sm" onClick={() => remove.mutate(k.id)}>
                     <Trash2 className="w-4 h-4" />
