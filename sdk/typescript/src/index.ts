@@ -133,6 +133,10 @@ export class QuoteScribeClient {
     update: (id: string, input: UpdateDocumentInput) => Promise<Single<Document>>;
     delete: (id: string) => Promise<{ deleted: true }>;
     verify: (id: string) => Promise<VerifyPayload>;
+    /** Direct URL developers can pass to a browser (still requires the Bearer header when fetched). */
+    pdfUrl: (id: string, opts?: { disposition?: "inline" | "attachment" }) => string;
+    /** Fetch the rendered PDF bytes. */
+    downloadPdf: (id: string, opts?: { disposition?: "inline" | "attachment" }) => Promise<Uint8Array>;
   };
 
   organization: {
@@ -161,6 +165,26 @@ export class QuoteScribeClient {
       update: (id, input) => this.request("PATCH", `/documents/${encodeURIComponent(id)}`, input),
       delete: (id) => this.request("DELETE", `/documents/${encodeURIComponent(id)}`),
       verify: (id) => this.request("GET", `/documents/${encodeURIComponent(id)}/verify`),
+      pdfUrl: (id, opts) => {
+        const q = opts?.disposition ? `?disposition=${opts.disposition}` : "";
+        return `${this.baseUrl}/api/public/v1/documents/${encodeURIComponent(id)}/pdf${q}`;
+      },
+      downloadPdf: async (id, opts) => {
+        const q = opts?.disposition ? `?disposition=${opts.disposition}` : "";
+        const res = await this.fetchImpl(
+          `${this.baseUrl}/api/public/v1/documents/${encodeURIComponent(id)}/pdf${q}`,
+          { method: "GET", headers: { Authorization: `Bearer ${this.apiKey}` } },
+        );
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          let msg = res.statusText;
+          try {
+            msg = JSON.parse(text)?.error?.message ?? msg;
+          } catch { /* not json */ }
+          throw new QuoteScribeError(res.status, msg);
+        }
+        return new Uint8Array(await res.arrayBuffer());
+      },
     };
 
     this.organization = {

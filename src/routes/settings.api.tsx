@@ -105,6 +105,32 @@ function ApiSettingsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const rotate = useMutation({
+    mutationFn: async (existing: ApiKeyRow) => {
+      if (!orgId) throw new Error("No active org");
+      const { data: userRes } = await supabase.auth.getUser();
+      const key = generateKey();
+      const hash = await sha256Hex(key);
+      const prefix = key.slice(0, KEY_PREFIX.length + 6);
+      // Insert the replacement first — existing key keeps working until you revoke it.
+      const { error } = await supabase.from("api_keys").insert({
+        org_id: orgId,
+        name: `${existing.name} (rotated)`,
+        prefix,
+        key_hash: hash,
+        created_by: userRes.user?.id ?? null,
+      });
+      if (error) throw new Error(error.message);
+      return key;
+    },
+    onSuccess: (key) => {
+      setFreshKey(key);
+      toast.success("New key issued. Old key still works — revoke it once you've migrated.");
+      qc.invalidateQueries({ queryKey: ["api-keys", orgId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const remove = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("api_keys").delete().eq("id", id);
@@ -187,9 +213,13 @@ function ApiSettingsPage() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium truncate">{k.name}</span>
-                    {k.revoked_at && (
+                    {k.revoked_at ? (
                       <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-destructive/10 text-destructive">
                         revoked
+                      </span>
+                    ) : (
+                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
+                        active
                       </span>
                     )}
                   </div>
@@ -199,13 +229,25 @@ function ApiSettingsPage() {
                   <div className="text-[11px] text-muted-foreground mt-0.5">
                     Created {new Date(k.created_at).toLocaleDateString()}
                     {k.last_used_at ? ` · last used ${new Date(k.last_used_at).toLocaleDateString()}` : " · never used"}
+                    {k.revoked_at ? ` · revoked ${new Date(k.revoked_at).toLocaleDateString()}` : ""}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
                   {!k.revoked_at && (
-                    <Button variant="outline" size="sm" onClick={() => revoke.mutate(k.id)}>
-                      Revoke
-                    </Button>
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => rotate.mutate(k)}
+                        disabled={rotate.isPending}
+                        title="Issue a replacement key. The old one keeps working until you revoke it."
+                      >
+                        Rotate
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => revoke.mutate(k.id)}>
+                        Revoke
+                      </Button>
+                    </>
                   )}
                   <Button variant="ghost" size="sm" onClick={() => remove.mutate(k.id)}>
                     <Trash2 className="w-4 h-4" />

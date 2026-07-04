@@ -70,6 +70,24 @@ class _Documents(_Resource):
     def verify(self, document_id: str) -> dict:
         return self._c._request("GET", f"/documents/{document_id}/verify")
 
+    def pdf_url(self, document_id: str, disposition: Optional[str] = None) -> str:
+        q = f"?disposition={disposition}" if disposition else ""
+        return f"{self._c.base_url}/api/public/v1/documents/{document_id}/pdf{q}"
+
+    def download_pdf(self, document_id: str, disposition: Optional[str] = None) -> bytes:
+        """Fetch the rendered PDF bytes for a document."""
+        url = self.pdf_url(document_id, disposition)
+        headers = {"Authorization": f"Bearer {self._c.api_key}"}
+        res = requests.get(url, headers=headers, timeout=self._c.timeout)
+        if not res.ok:
+            msg = res.reason or "Request failed"
+            try:
+                msg = (res.json().get("error") or {}).get("message") or msg
+            except ValueError:
+                pass
+            raise QuoteScribeError(res.status_code, msg)
+        return res.content
+
 
 class _Organization(_Resource):
     def get(self) -> dict:
