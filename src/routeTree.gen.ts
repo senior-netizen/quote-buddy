@@ -31,6 +31,7 @@ import { Route as ApiPublicV1DocumentsIdRouteImport } from './routes/api.public.
 import { Route as ApiPublicV1ClientsIdRouteImport } from './routes/api.public.v1.clients.$id'
 import { Route as ApiDocumentsYearTypeIdRouteImport } from './routes/api.documents.$year.$type.$id'
 import { Route as ApiPublicV1DocumentsIdVerifyRouteImport } from './routes/api.public.v1.documents.$id.verify'
+import { Route as ApiPublicV1DocumentsIdPdfRouteImport } from './routes/api.public.v1.documents.$id.pdf'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -143,6 +144,12 @@ const ApiPublicV1DocumentsIdVerifyRoute =
     path: '/verify',
     getParentRoute: () => ApiPublicV1DocumentsIdRoute,
   } as any)
+const ApiPublicV1DocumentsIdPdfRoute =
+  ApiPublicV1DocumentsIdPdfRouteImport.update({
+    id: '/pdf',
+    path: '/pdf',
+    getParentRoute: () => ApiPublicV1DocumentsIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
   '/api/public/v1/clients/$id': typeof ApiPublicV1ClientsIdRoute
   '/api/public/v1/documents/$id': typeof ApiPublicV1DocumentsIdRouteWithChildren
+  '/api/public/v1/documents/$id/pdf': typeof ApiPublicV1DocumentsIdPdfRoute
   '/api/public/v1/documents/$id/verify': typeof ApiPublicV1DocumentsIdVerifyRoute
 }
 export interface FileRoutesByTo {
@@ -190,6 +198,7 @@ export interface FileRoutesByTo {
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
   '/api/public/v1/clients/$id': typeof ApiPublicV1ClientsIdRoute
   '/api/public/v1/documents/$id': typeof ApiPublicV1DocumentsIdRouteWithChildren
+  '/api/public/v1/documents/$id/pdf': typeof ApiPublicV1DocumentsIdPdfRoute
   '/api/public/v1/documents/$id/verify': typeof ApiPublicV1DocumentsIdVerifyRoute
 }
 export interface FileRoutesById {
@@ -215,6 +224,7 @@ export interface FileRoutesById {
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
   '/api/public/v1/clients/$id': typeof ApiPublicV1ClientsIdRoute
   '/api/public/v1/documents/$id': typeof ApiPublicV1DocumentsIdRouteWithChildren
+  '/api/public/v1/documents/$id/pdf': typeof ApiPublicV1DocumentsIdPdfRoute
   '/api/public/v1/documents/$id/verify': typeof ApiPublicV1DocumentsIdVerifyRoute
 }
 export interface FileRouteTypes {
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/api/documents/$year/$type/$id'
     | '/api/public/v1/clients/$id'
     | '/api/public/v1/documents/$id'
+    | '/api/public/v1/documents/$id/pdf'
     | '/api/public/v1/documents/$id/verify'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -265,6 +276,7 @@ export interface FileRouteTypes {
     | '/api/documents/$year/$type/$id'
     | '/api/public/v1/clients/$id'
     | '/api/public/v1/documents/$id'
+    | '/api/public/v1/documents/$id/pdf'
     | '/api/public/v1/documents/$id/verify'
   id:
     | '__root__'
@@ -289,6 +301,7 @@ export interface FileRouteTypes {
     | '/api/documents/$year/$type/$id'
     | '/api/public/v1/clients/$id'
     | '/api/public/v1/documents/$id'
+    | '/api/public/v1/documents/$id/pdf'
     | '/api/public/v1/documents/$id/verify'
   fileRoutesById: FileRoutesById
 }
@@ -467,6 +480,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1DocumentsIdVerifyRouteImport
       parentRoute: typeof ApiPublicV1DocumentsIdRoute
     }
+    '/api/public/v1/documents/$id/pdf': {
+      id: '/api/public/v1/documents/$id/pdf'
+      path: '/pdf'
+      fullPath: '/api/public/v1/documents/$id/pdf'
+      preLoaderRoute: typeof ApiPublicV1DocumentsIdPdfRouteImport
+      parentRoute: typeof ApiPublicV1DocumentsIdRoute
+    }
   }
 }
 
@@ -498,11 +518,13 @@ const ApiPublicV1ClientsRouteWithChildren =
   ApiPublicV1ClientsRoute._addFileChildren(ApiPublicV1ClientsRouteChildren)
 
 interface ApiPublicV1DocumentsIdRouteChildren {
+  ApiPublicV1DocumentsIdPdfRoute: typeof ApiPublicV1DocumentsIdPdfRoute
   ApiPublicV1DocumentsIdVerifyRoute: typeof ApiPublicV1DocumentsIdVerifyRoute
 }
 
 const ApiPublicV1DocumentsIdRouteChildren: ApiPublicV1DocumentsIdRouteChildren =
   {
+    ApiPublicV1DocumentsIdPdfRoute: ApiPublicV1DocumentsIdPdfRoute,
     ApiPublicV1DocumentsIdVerifyRoute: ApiPublicV1DocumentsIdVerifyRoute,
   }
 
@@ -543,13 +565,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
