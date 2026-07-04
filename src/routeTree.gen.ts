@@ -25,7 +25,7 @@ import { Route as DocumentsNewRouteImport } from './routes/documents.new'
 import { Route as DocumentsIdIndexRouteImport } from './routes/documents.$id.index'
 import { Route as DocumentsIdEditRouteImport } from './routes/documents.$id.edit'
 import { Route as ApiPublicV1OrganizationRouteImport } from './routes/api.public.v1.organization'
-import { Route as ApiPublicV1OpenapiRouteImport } from './routes/api.public.v1.openapi'
+import { Route as ApiPublicV1OpenapiDotjsonRouteImport } from './routes/api.public.v1.openapi[.]json'
 import { Route as ApiPublicV1DocumentsRouteImport } from './routes/api.public.v1.documents'
 import { Route as ApiPublicV1ClientsRouteImport } from './routes/api.public.v1.clients'
 import { Route as ApiPublicV1DocumentsIdRouteImport } from './routes/api.public.v1.documents.$id'
@@ -114,11 +114,12 @@ const ApiPublicV1OrganizationRoute = ApiPublicV1OrganizationRouteImport.update({
   path: '/api/public/v1/organization',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicV1OpenapiRoute = ApiPublicV1OpenapiRouteImport.update({
-  id: '/api/public/v1/openapi',
-  path: '/api/public/v1/openapi',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const ApiPublicV1OpenapiDotjsonRoute =
+  ApiPublicV1OpenapiDotjsonRouteImport.update({
+    id: '/api/public/v1/openapi.json',
+    path: '/api/public/v1/openapi.json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicV1DocumentsRoute = ApiPublicV1DocumentsRouteImport.update({
   id: '/api/public/v1/documents',
   path: '/api/public/v1/documents',
@@ -175,7 +176,7 @@ export interface FileRoutesByFullPath {
   '/documents/$id/': typeof DocumentsIdIndexRoute
   '/api/public/v1/clients': typeof ApiPublicV1ClientsRouteWithChildren
   '/api/public/v1/documents': typeof ApiPublicV1DocumentsRouteWithChildren
-  '/api/public/v1/openapi': typeof ApiPublicV1OpenapiRoute
+  '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/organization': typeof ApiPublicV1OrganizationRoute
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
   '/api/public/v1/clients/$id': typeof ApiPublicV1ClientsIdRoute
@@ -201,7 +202,7 @@ export interface FileRoutesByTo {
   '/documents/$id': typeof DocumentsIdIndexRoute
   '/api/public/v1/clients': typeof ApiPublicV1ClientsRouteWithChildren
   '/api/public/v1/documents': typeof ApiPublicV1DocumentsRouteWithChildren
-  '/api/public/v1/openapi': typeof ApiPublicV1OpenapiRoute
+  '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/organization': typeof ApiPublicV1OrganizationRoute
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
   '/api/public/v1/clients/$id': typeof ApiPublicV1ClientsIdRoute
@@ -228,7 +229,7 @@ export interface FileRoutesById {
   '/documents/$id/': typeof DocumentsIdIndexRoute
   '/api/public/v1/clients': typeof ApiPublicV1ClientsRouteWithChildren
   '/api/public/v1/documents': typeof ApiPublicV1DocumentsRouteWithChildren
-  '/api/public/v1/openapi': typeof ApiPublicV1OpenapiRoute
+  '/api/public/v1/openapi.json': typeof ApiPublicV1OpenapiDotjsonRoute
   '/api/public/v1/organization': typeof ApiPublicV1OrganizationRoute
   '/api/documents/$year/$type/$id': typeof ApiDocumentsYearTypeIdRoute
   '/api/public/v1/clients/$id': typeof ApiPublicV1ClientsIdRoute
@@ -256,7 +257,7 @@ export interface FileRouteTypes {
     | '/documents/$id/'
     | '/api/public/v1/clients'
     | '/api/public/v1/documents'
-    | '/api/public/v1/openapi'
+    | '/api/public/v1/openapi.json'
     | '/api/public/v1/organization'
     | '/api/documents/$year/$type/$id'
     | '/api/public/v1/clients/$id'
@@ -282,7 +283,7 @@ export interface FileRouteTypes {
     | '/documents/$id'
     | '/api/public/v1/clients'
     | '/api/public/v1/documents'
-    | '/api/public/v1/openapi'
+    | '/api/public/v1/openapi.json'
     | '/api/public/v1/organization'
     | '/api/documents/$year/$type/$id'
     | '/api/public/v1/clients/$id'
@@ -308,7 +309,7 @@ export interface FileRouteTypes {
     | '/documents/$id/'
     | '/api/public/v1/clients'
     | '/api/public/v1/documents'
-    | '/api/public/v1/openapi'
+    | '/api/public/v1/openapi.json'
     | '/api/public/v1/organization'
     | '/api/documents/$year/$type/$id'
     | '/api/public/v1/clients/$id'
@@ -332,7 +333,7 @@ export interface RootRouteChildren {
   DocumentsIdIndexRoute: typeof DocumentsIdIndexRoute
   ApiPublicV1ClientsRoute: typeof ApiPublicV1ClientsRouteWithChildren
   ApiPublicV1DocumentsRoute: typeof ApiPublicV1DocumentsRouteWithChildren
-  ApiPublicV1OpenapiRoute: typeof ApiPublicV1OpenapiRoute
+  ApiPublicV1OpenapiDotjsonRoute: typeof ApiPublicV1OpenapiDotjsonRoute
   ApiPublicV1OrganizationRoute: typeof ApiPublicV1OrganizationRoute
   ApiDocumentsYearTypeIdRoute: typeof ApiDocumentsYearTypeIdRoute
 }
@@ -451,11 +452,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1OrganizationRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/v1/openapi': {
-      id: '/api/public/v1/openapi'
-      path: '/api/public/v1/openapi'
-      fullPath: '/api/public/v1/openapi'
-      preLoaderRoute: typeof ApiPublicV1OpenapiRouteImport
+    '/api/public/v1/openapi.json': {
+      id: '/api/public/v1/openapi.json'
+      path: '/api/public/v1/openapi.json'
+      fullPath: '/api/public/v1/openapi.json'
+      preLoaderRoute: typeof ApiPublicV1OpenapiDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/v1/documents': {
@@ -579,7 +580,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocumentsIdIndexRoute: DocumentsIdIndexRoute,
   ApiPublicV1ClientsRoute: ApiPublicV1ClientsRouteWithChildren,
   ApiPublicV1DocumentsRoute: ApiPublicV1DocumentsRouteWithChildren,
-  ApiPublicV1OpenapiRoute: ApiPublicV1OpenapiRoute,
+  ApiPublicV1OpenapiDotjsonRoute: ApiPublicV1OpenapiDotjsonRoute,
   ApiPublicV1OrganizationRoute: ApiPublicV1OrganizationRoute,
   ApiDocumentsYearTypeIdRoute: ApiDocumentsYearTypeIdRoute,
 }

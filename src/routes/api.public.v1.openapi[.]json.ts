@@ -5,7 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
  * Swagger UI, Postman, and codegen can consume it.
  *   GET /api/public/v1/openapi.json
  */
-export const Route = createFileRoute("/api/public/v1/openapi")({
+export const Route = createFileRoute("/api/public/v1/openapi.json")({
   server: {
     handlers: {
       OPTIONS: async () =>
