@@ -120,6 +120,7 @@ function DevelopersPage() {
           >
             Open in Swagger UI
           </a>
+        </div>
       </section>
 
       <section className="mt-12">
