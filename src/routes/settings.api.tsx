@@ -105,6 +105,32 @@ function ApiSettingsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const rotate = useMutation({
+    mutationFn: async (existing: ApiKeyRow) => {
+      if (!orgId) throw new Error("No active org");
+      const { data: userRes } = await supabase.auth.getUser();
+      const key = generateKey();
+      const hash = await sha256Hex(key);
+      const prefix = key.slice(0, KEY_PREFIX.length + 6);
+      // Insert the replacement first — existing key keeps working until you revoke it.
+      const { error } = await supabase.from("api_keys").insert({
+        org_id: orgId,
+        name: `${existing.name} (rotated)`,
+        prefix,
+        key_hash: hash,
+        created_by: userRes.user?.id ?? null,
+      });
+      if (error) throw new Error(error.message);
+      return key;
+    },
+    onSuccess: (key) => {
+      setFreshKey(key);
+      toast.success("New key issued. Old key still works — revoke it once you've migrated.");
+      qc.invalidateQueries({ queryKey: ["api-keys", orgId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const remove = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("api_keys").delete().eq("id", id);
