@@ -225,6 +225,25 @@ function Detail() {
               <span className="sm:hidden">{convert.isPending ? "…" : "Convert"}</span>
             </Button>
           )}
+          {doc.doc_type === "invoice" && fiscalCfg?.enabled && doc.fiscal_status !== "submitted" && (
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => {
+                toast.promise(
+                  fiscalize({ data: { documentId: doc.id } }).then(() => refetch()),
+                  { loading: "Submitting to ZIMRA…", success: "Fiscalised", error: (e) => e instanceof Error ? e.message : "Failed" },
+                );
+              }}
+            >
+              <Receipt className="mr-1.5 h-3.5 w-3.5" />Fiscalise
+            </Button>
+          )}
+          {doc.fiscal_status === "submitted" && (
+            <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs text-green-800">
+              ZIMRA · {doc.verification_code}
+            </span>
+          )}
           <Link to="/documents/$id/edit" params={{ id: doc.id }}>
             <Button variant="outline" className="rounded-full">
               <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
