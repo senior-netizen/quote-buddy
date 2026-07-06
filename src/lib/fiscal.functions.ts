@@ -138,11 +138,10 @@ export const updateFiscalConfig = createServerFn({ method: "POST" })
     const orgId = await activeOrgId(context.supabase, context.userId);
     await ensureAdmin(context.supabase, context.userId, orgId);
 
-    // Upsert
-    const patch: Record<string, unknown> = { ...data, org_id: orgId };
-    // Never persist empty strings for optional keys
-    for (const k of Object.keys(patch)) {
-      if (patch[k] === "") patch[k] = null;
+    // Normalize: turn empty strings into nulls
+    const cleaned: Record<string, unknown> = { ...data };
+    for (const k of Object.keys(cleaned)) {
+      if (cleaned[k] === "") cleaned[k] = null;
     }
 
     const { data: existing } = await supabaseAdmin
@@ -152,11 +151,9 @@ export const updateFiscalConfig = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (existing) {
-      const { org_id: _drop, ...rest } = patch;
-      void _drop;
       const { data: updated, error } = await supabaseAdmin
         .from("organization_fiscal_config")
-        .update(rest)
+        .update(cleaned as never)
         .eq("org_id", orgId)
         .select("*")
         .single();
@@ -164,9 +161,10 @@ export const updateFiscalConfig = createServerFn({ method: "POST" })
       return stripSecrets(updated as Record<string, unknown>);
     }
 
+    const insertPayload = { ...cleaned, org_id: orgId } as never;
     const { data: inserted, error } = await supabaseAdmin
       .from("organization_fiscal_config")
-      .insert(patch)
+      .insert(insertPayload)
       .select("*")
       .single();
     if (error) throw new Error(error.message);
