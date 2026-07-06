@@ -207,7 +207,7 @@ export const testDeviceConnection = createServerFn({ method: "POST" })
     try {
       const res = await getDeviceConfig(env, device);
       if (!res.ok) return { ok: false, message: res.error.message };
-      return { ok: true, message: "Device reachable", data: res.data };
+      return { ok: true, message: "Device reachable", data: res.data as unknown as Json };
     } catch (e) {
       return { ok: false, message: e instanceof Error ? e.message : "Network error" };
     }
@@ -300,7 +300,7 @@ export const closeFiscalDay = createServerFn({ method: "POST" })
     if (!res.ok) {
       await supabaseAdmin
         .from("fiscal_days")
-        .update({ status: "error", closing_response: { error: res.error } })
+        .update({ status: "error", closing_response: { error: res.error.message } as unknown as Json })
         .eq("id", openRow.id);
       throw new Error(`FDMS CloseDay failed: ${res.error.message}`);
     }
@@ -473,7 +473,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
         .update({
           fiscal_status: "failed",
           fiscal_error: submission.error.message,
-          fiscal_response: submission.error.raw as object | null,
+          fiscal_response: (submission.error.raw ?? null) as unknown as Json,
           fiscal_submitted_at: new Date().toISOString(),
         })
         .eq("id", doc.id);
