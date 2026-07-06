@@ -136,7 +136,7 @@ export const updateFiscalConfig = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => updateSchema.parse(data))
   .handler(async ({ data, context }): Promise<FiscalConfig> => {
     const orgId = await activeOrgId(context.supabase, context.userId);
-    await ensureAdmin(context, orgId);
+    await ensureAdmin(context.supabase, context.userId, orgId);
 
     // Upsert
     const patch: Record<string, unknown> = { ...data, org_id: orgId };
@@ -202,9 +202,9 @@ async function loadDevice(orgId: string): Promise<{
 /** Test the connection to FDMS by fetching the device configuration. */
 export const testDeviceConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ ok: boolean; message: string; data?: unknown }> => {
+  .handler(async ({ context }): Promise<{ ok: boolean; message: string; data?: Json }> => {
     const orgId = await activeOrgId(context.supabase, context.userId);
-    await ensureAdmin(context, orgId);
+    await ensureAdmin(context.supabase, context.userId, orgId);
     const { env, device } = await loadDevice(orgId);
     try {
       const res = await getDeviceConfig(env, device);
@@ -220,7 +220,7 @@ export const openFiscalDay = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<FiscalDay> => {
     const orgId = await activeOrgId(context.supabase, context.userId);
-    await ensureAdmin(context, orgId);
+    await ensureAdmin(context.supabase, context.userId, orgId);
     const { env, device, row } = await loadDevice(orgId);
 
     // Ensure no day is currently open
@@ -245,7 +245,7 @@ export const openFiscalDay = createServerFn({ method: "POST" })
         fiscal_day_no: nextDayNo,
         opened_at: openedAt,
         status,
-        opening_response: res.ok ? (res.data as object) : ({ error: res.error } as object),
+        opening_response: res.ok ? (res.data as unknown as Json) : ({ error: res.error } as unknown as Json),
       })
       .select("*")
       .single();
@@ -275,7 +275,7 @@ export const closeFiscalDay = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<FiscalDay> => {
     const orgId = await activeOrgId(context.supabase, context.userId);
-    await ensureAdmin(context, orgId);
+    await ensureAdmin(context.supabase, context.userId, orgId);
     const { env, device } = await loadDevice(orgId);
 
     const { data: openRow } = await supabaseAdmin
@@ -312,8 +312,8 @@ export const closeFiscalDay = createServerFn({ method: "POST" })
       .update({
         status: "closed",
         closed_at: closedAt,
-        totals: totals as object,
-        closing_response: res.data as object,
+        totals: totals as unknown as Json,
+        closing_response: res.data as unknown as Json,
       })
       .eq("id", openRow.id)
       .select("*")
@@ -361,7 +361,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
     fiscal_day_no: number;
   }> => {
     const orgId = await activeOrgId(context.supabase, context.userId);
-    await ensureAdmin(context, orgId);
+    await ensureAdmin(context.supabase, context.userId, orgId);
 
     const { data: doc, error: docErr } = await supabaseAdmin
       .from("documents")
@@ -495,7 +495,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
         verification_code: verificationCode,
         receipt_qr_url: qrUrl,
         fiscal_submitted_at: new Date().toISOString(),
-        fiscal_response: submission.data as object,
+        fiscal_response: submission.data as unknown as Json,
         fiscal_error: null,
       })
       .eq("id", doc.id);
