@@ -257,6 +257,54 @@ export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
             },
           ] as const)
         : []),
+
+      ...(d.fiscal && zimraQrDataUrl
+        ? ([
+            { text: "", margin: [0, 24, 0, 0] },
+            { canvas: [{ type: "line", x1: 0, y1: 0, x2: 499, y2: 0, lineWidth: 0.5, lineColor: HAIR }] },
+            {
+              margin: [0, 16, 0, 0],
+              columns: [
+                { image: zimraQrDataUrl, width: 76 },
+                {
+                  width: "*",
+                  margin: [16, 4, 0, 0],
+                  stack: [
+                    { text: "ZIMRA FISCAL RECEIPT", fontSize: 8, color: MUTED, characterSpacing: 2 },
+                    {
+                      text: `Verification Code: ${d.fiscal.verificationCode}`,
+                      fontSize: 10, bold: true, color: INK, margin: [0, 4, 0, 4],
+                    },
+                    {
+                      columns: [
+                        {
+                          width: "*",
+                          stack: [
+                            { text: "RECEIPT NO.", fontSize: 7, color: MUTED, characterSpacing: 1.5 },
+                            { text: String(d.fiscal.receiptGlobalNo), fontSize: 9, color: INK, margin: [0, 1, 0, 4] },
+                            { text: "FISCAL DAY", fontSize: 7, color: MUTED, characterSpacing: 1.5 },
+                            { text: d.fiscal.fiscalDayNo != null ? `#${d.fiscal.fiscalDayNo}` : "—", fontSize: 9, color: INK, margin: [0, 1, 0, 0] },
+                          ],
+                        },
+                        {
+                          width: "*",
+                          stack: [
+                            { text: "DEVICE", fontSize: 7, color: MUTED, characterSpacing: 1.5 },
+                            { text: d.fiscal.deviceSerial ?? d.fiscal.deviceId ?? "—", fontSize: 9, color: INK, margin: [0, 1, 0, 4] },
+                            ...(d.fiscal.vatNumber
+                              ? [{ text: "VAT NUMBER", fontSize: 7, color: MUTED, characterSpacing: 1.5 } as const,
+                                 { text: d.fiscal.vatNumber, fontSize: 9, color: INK, margin: [0, 1, 0, 0] as [number, number, number, number] }]
+                              : []),
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ] as const)
+        : []),
     ],
   };
 }
