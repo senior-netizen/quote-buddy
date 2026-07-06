@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
@@ -9,10 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { formatDate, formatMoney, rowTotal, type LineItem } from "@/lib/calc";
 import { generateDocNumber } from "@/lib/docNumber";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Eye, Repeat, ShieldCheck, Pencil } from "lucide-react";
+import { ArrowLeft, Download, Eye, Repeat, ShieldCheck, Pencil, Receipt } from "lucide-react";
 import { issueVerifyToken } from "@/lib/verify.functions";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
 import { useActiveOrg, profileToBrand } from "@/lib/org";
+import { submitInvoiceToZimra, getFiscalConfig } from "@/lib/fiscal.functions";
 
 export const Route = createFileRoute("/documents/$id/")({ component: Page });
 
