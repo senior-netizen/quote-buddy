@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { computeReceiptHash } from "@/lib/fiscal/receiptHash";
 import {
   openDay as fdmsOpenDay,
@@ -13,6 +15,8 @@ import {
 } from "@/lib/fiscal/zimra.server";
 import type { LineItem } from "@/lib/calc";
 import { computeTotals } from "@/lib/calc";
+
+type UserClient = SupabaseClient<Database>;
 
 // ============================================================
 // Types
