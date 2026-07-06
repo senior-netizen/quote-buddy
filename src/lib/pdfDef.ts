@@ -29,6 +29,18 @@ export type DocForPdf = {
   docHash?: string;
   /** HMAC signature ID (base64url). Shown in the verification block. */
   signatureId?: string;
+  /** ZIMRA fiscal fields (present only for fiscalised invoices). */
+  fiscal?: {
+    verificationCode: string;
+    receiptGlobalNo: number;
+    receiptCounter: number | null;
+    fiscalDayNo: number | null;
+    deviceSerial: string | null;
+    deviceId: string | null;
+    vatNumber: string | null;
+    tin: string | null;
+    receiptQrUrl: string;
+  } | null;
 };
 
 const INK = "#0a0a0a";
