@@ -48,27 +48,28 @@ export type FiscalDay = {
   opened_at: string;
   closed_at: string | null;
   status: "open" | "closed" | "error";
-  totals: unknown;
+  totals: Json | null;
 };
 
 // ============================================================
 // Helpers (server-only)
 // ============================================================
 
-async function ensureAdmin(
-  ctx: { supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> }; userId: string },
-  orgId: string,
-) {
-  const { data } = await ctx.supabase.rpc("has_org_role", {
-    _user_id: ctx.userId,
+async function ensureAdmin(supabase: UserClient, userId: string, orgId: string) {
+  const { data } = await supabase.rpc("has_org_role", {
+    _user_id: userId,
     _org_id: orgId,
     _min_role: "admin",
   });
   if (!data) throw new Error("Admin or owner role required");
 }
 
-async function activeOrgId(supabase: { from: (t: string) => { select: (c: string) => { eq: (col: string, v: string) => { maybeSingle: () => Promise<{ data: { active_org_id: string | null } | null }> } } } }, userId: string): Promise<string> {
-  const { data } = await supabase.from("profiles").select("active_org_id").eq("user_id", userId).maybeSingle();
+async function activeOrgId(supabase: UserClient, userId: string): Promise<string> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("active_org_id")
+    .eq("user_id", userId)
+    .maybeSingle();
   const id = data?.active_org_id ?? null;
   if (!id) throw new Error("No active organization");
   return id;
