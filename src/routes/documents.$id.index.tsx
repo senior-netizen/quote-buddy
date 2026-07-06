@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
@@ -9,10 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { formatDate, formatMoney, rowTotal, type LineItem } from "@/lib/calc";
 import { generateDocNumber } from "@/lib/docNumber";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Eye, Repeat, ShieldCheck, Pencil } from "lucide-react";
+import { ArrowLeft, Download, Eye, Repeat, ShieldCheck, Pencil, Receipt } from "lucide-react";
 import { issueVerifyToken } from "@/lib/verify.functions";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
 import { useActiveOrg, profileToBrand } from "@/lib/org";
+import { submitInvoiceToZimra, getFiscalConfig } from "@/lib/fiscal.functions";
 
 export const Route = createFileRoute("/documents/$id/")({ component: Page });
 
@@ -41,12 +43,22 @@ type DocFull = {
   notes: string | null;
   client_id: string;
   client: { company_name: string; address: string | null; email: string | null; phone: string | null } | null;
+  fiscal_status: string;
+  fiscal_day_no: number | null;
+  receipt_global_no: number | null;
+  receipt_counter: number | null;
+  verification_code: string | null;
+  receipt_qr_url: string | null;
+  fiscal_error: string | null;
 };
 
 function Detail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { data: activeOrg } = useActiveOrg();
+  const getFiscal = useServerFn(getFiscalConfig);
+  const fiscalize = useServerFn(submitInvoiceToZimra);
+  const { data: fiscalCfg } = useQuery({ queryKey: ["fiscal-config"], queryFn: () => getFiscal() });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const { data: doc, isLoading, refetch } = useQuery({
@@ -94,6 +106,20 @@ function Detail() {
       verifyUrl,
       docHash: hash,
       signatureId: sig,
+      fiscal:
+        d.fiscal_status === "submitted" && d.verification_code && d.receipt_global_no && d.receipt_qr_url
+          ? {
+              verificationCode: d.verification_code,
+              receiptGlobalNo: d.receipt_global_no,
+              receiptCounter: d.receipt_counter,
+              fiscalDayNo: d.fiscal_day_no,
+              deviceSerial: fiscalCfg?.device_serial ?? null,
+              deviceId: fiscalCfg?.device_id ?? null,
+              vatNumber: fiscalCfg?.vat_number ?? null,
+              tin: fiscalCfg?.tax_payer_tin ?? null,
+              receiptQrUrl: d.receipt_qr_url,
+            }
+          : null,
     };
   };
 
@@ -198,6 +224,25 @@ function Detail() {
               <span className="hidden sm:inline">{convert.isPending ? "Converting…" : "Convert to Invoice"}</span>
               <span className="sm:hidden">{convert.isPending ? "…" : "Convert"}</span>
             </Button>
+          )}
+          {doc.doc_type === "invoice" && fiscalCfg?.enabled && doc.fiscal_status !== "submitted" && (
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => {
+                toast.promise(
+                  fiscalize({ data: { documentId: doc.id } }).then(() => refetch()),
+                  { loading: "Submitting to ZIMRA…", success: "Fiscalised", error: (e) => e instanceof Error ? e.message : "Failed" },
+                );
+              }}
+            >
+              <Receipt className="mr-1.5 h-3.5 w-3.5" />Fiscalise
+            </Button>
+          )}
+          {doc.fiscal_status === "submitted" && (
+            <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs text-green-800">
+              ZIMRA · {doc.verification_code}
+            </span>
           )}
           <Link to="/documents/$id/edit" params={{ id: doc.id }}>
             <Button variant="outline" className="rounded-full">

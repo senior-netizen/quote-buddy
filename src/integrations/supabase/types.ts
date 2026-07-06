@@ -111,17 +111,27 @@ export type Database = {
           doc_number: string
           doc_type: string
           due_date: string | null
+          fiscal_day_no: number | null
+          fiscal_error: string | null
+          fiscal_response: Json | null
+          fiscal_status: string
+          fiscal_submitted_at: string | null
           id: string
           issue_date: string
           line_items: Json
           notes: string | null
           org_id: string
+          receipt_counter: number | null
+          receipt_global_no: number | null
+          receipt_hash: string | null
+          receipt_qr_url: string | null
           subtotal: number
           tax_amount: number
           tax_rate: number
           total: number
           updated_at: string
           user_id: string
+          verification_code: string | null
         }
         Insert: {
           client_id: string
@@ -131,17 +141,27 @@ export type Database = {
           doc_number: string
           doc_type: string
           due_date?: string | null
+          fiscal_day_no?: number | null
+          fiscal_error?: string | null
+          fiscal_response?: Json | null
+          fiscal_status?: string
+          fiscal_submitted_at?: string | null
           id?: string
           issue_date: string
           line_items?: Json
           notes?: string | null
           org_id: string
+          receipt_counter?: number | null
+          receipt_global_no?: number | null
+          receipt_hash?: string | null
+          receipt_qr_url?: string | null
           subtotal?: number
           tax_amount?: number
           tax_rate?: number
           total?: number
           updated_at?: string
           user_id: string
+          verification_code?: string | null
         }
         Update: {
           client_id?: string
@@ -151,17 +171,27 @@ export type Database = {
           doc_number?: string
           doc_type?: string
           due_date?: string | null
+          fiscal_day_no?: number | null
+          fiscal_error?: string | null
+          fiscal_response?: Json | null
+          fiscal_status?: string
+          fiscal_submitted_at?: string | null
           id?: string
           issue_date?: string
           line_items?: Json
           notes?: string | null
           org_id?: string
+          receipt_counter?: number | null
+          receipt_global_no?: number | null
+          receipt_hash?: string | null
+          receipt_qr_url?: string | null
           subtotal?: number
           tax_amount?: number
           tax_rate?: number
           total?: number
           updated_at?: string
           user_id?: string
+          verification_code?: string | null
         }
         Relationships: [
           {
@@ -182,6 +212,127 @@ export type Database = {
             foreignKeyName: "documents_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_days: {
+        Row: {
+          closed_at: string | null
+          closing_response: Json | null
+          created_at: string
+          fiscal_day_no: number
+          id: string
+          opened_at: string
+          opening_response: Json | null
+          org_id: string
+          status: string
+          totals: Json | null
+        }
+        Insert: {
+          closed_at?: string | null
+          closing_response?: Json | null
+          created_at?: string
+          fiscal_day_no: number
+          id?: string
+          opened_at?: string
+          opening_response?: Json | null
+          org_id: string
+          status?: string
+          totals?: Json | null
+        }
+        Update: {
+          closed_at?: string | null
+          closing_response?: Json | null
+          created_at?: string
+          fiscal_day_no?: number
+          id?: string
+          opened_at?: string
+          opening_response?: Json | null
+          org_id?: string
+          status?: string
+          totals?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_days_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_fiscal_config: {
+        Row: {
+          activation_key: string | null
+          certificate_pem: string | null
+          created_at: string
+          device_id: string | null
+          device_model: string | null
+          device_operating_mode: string
+          device_serial: string | null
+          enabled: boolean
+          environment: string
+          last_fiscal_day_no: number | null
+          last_receipt_counter: number
+          last_receipt_global_no: number
+          org_id: string
+          private_key_pem: string | null
+          tax_payer_name: string | null
+          tax_payer_tin: string | null
+          trade_name: string | null
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          activation_key?: string | null
+          certificate_pem?: string | null
+          created_at?: string
+          device_id?: string | null
+          device_model?: string | null
+          device_operating_mode?: string
+          device_serial?: string | null
+          enabled?: boolean
+          environment?: string
+          last_fiscal_day_no?: number | null
+          last_receipt_counter?: number
+          last_receipt_global_no?: number
+          org_id: string
+          private_key_pem?: string | null
+          tax_payer_name?: string | null
+          tax_payer_tin?: string | null
+          trade_name?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          activation_key?: string | null
+          certificate_pem?: string | null
+          created_at?: string
+          device_id?: string | null
+          device_model?: string | null
+          device_operating_mode?: string
+          device_serial?: string | null
+          enabled?: boolean
+          environment?: string
+          last_fiscal_day_no?: number | null
+          last_receipt_counter?: number
+          last_receipt_global_no?: number
+          org_id?: string
+          private_key_pem?: string | null
+          tax_payer_name?: string | null
+          tax_payer_tin?: string | null
+          trade_name?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_fiscal_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
