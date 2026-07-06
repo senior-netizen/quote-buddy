@@ -63,6 +63,9 @@ export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
   const qrDataUrl = d.verifyUrl
     ? await QRCode.toDataURL(d.verifyUrl, { margin: 0, width: 220, errorCorrectionLevel: "M" })
     : null;
+  const zimraQrDataUrl = d.fiscal?.receiptQrUrl
+    ? await QRCode.toDataURL(d.fiscal.receiptQrUrl, { margin: 0, width: 220, errorCorrectionLevel: "M" })
+    : null;
 
   const itemRows = d.line_items.map((li, i) => [
     { text: String(i + 1), color: MUTED, fontSize: 9 },
