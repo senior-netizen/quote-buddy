@@ -19,6 +19,7 @@ import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
 import { Route as VerifyIdRouteImport } from './routes/verify.$id'
 import { Route as SettingsTeamRouteImport } from './routes/settings.team'
 import { Route as SettingsOrganizationRouteImport } from './routes/settings.organization'
+import { Route as SettingsFiscalRouteImport } from './routes/settings.fiscal'
 import { Route as SettingsApiRouteImport } from './routes/settings.api'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as DocumentsNewRouteImport } from './routes/documents.new'
@@ -82,6 +83,11 @@ const SettingsTeamRoute = SettingsTeamRouteImport.update({
 const SettingsOrganizationRoute = SettingsOrganizationRouteImport.update({
   id: '/organization',
   path: '/organization',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsFiscalRoute = SettingsFiscalRouteImport.update({
+  id: '/fiscal',
+  path: '/fiscal',
   getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsApiRoute = SettingsApiRouteImport.update({
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
   '/settings/api': typeof SettingsApiRoute
+  '/settings/fiscal': typeof SettingsFiscalRoute
   '/settings/organization': typeof SettingsOrganizationRoute
   '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
   '/settings/api': typeof SettingsApiRoute
+  '/settings/fiscal': typeof SettingsFiscalRoute
   '/settings/organization': typeof SettingsOrganizationRoute
   '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
   '/settings/api': typeof SettingsApiRoute
+  '/settings/fiscal': typeof SettingsFiscalRoute
   '/settings/organization': typeof SettingsOrganizationRoute
   '/settings/team': typeof SettingsTeamRoute
   '/verify/$id': typeof VerifyIdRoute
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/documents/new'
     | '/invite/$token'
     | '/settings/api'
+    | '/settings/fiscal'
     | '/settings/organization'
     | '/settings/team'
     | '/verify/$id'
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/documents/new'
     | '/invite/$token'
     | '/settings/api'
+    | '/settings/fiscal'
     | '/settings/organization'
     | '/settings/team'
     | '/verify/$id'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
     | '/documents/new'
     | '/invite/$token'
     | '/settings/api'
+    | '/settings/fiscal'
     | '/settings/organization'
     | '/settings/team'
     | '/verify/$id'
@@ -410,6 +422,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsOrganizationRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/fiscal': {
+      id: '/settings/fiscal'
+      path: '/fiscal'
+      fullPath: '/settings/fiscal'
+      preLoaderRoute: typeof SettingsFiscalRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/api': {
       id: '/settings/api'
       path: '/api'
@@ -513,12 +532,14 @@ declare module '@tanstack/react-router' {
 
 interface SettingsRouteChildren {
   SettingsApiRoute: typeof SettingsApiRoute
+  SettingsFiscalRoute: typeof SettingsFiscalRoute
   SettingsOrganizationRoute: typeof SettingsOrganizationRoute
   SettingsTeamRoute: typeof SettingsTeamRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsApiRoute: SettingsApiRoute,
+  SettingsFiscalRoute: SettingsFiscalRoute,
   SettingsOrganizationRoute: SettingsOrganizationRoute,
   SettingsTeamRoute: SettingsTeamRoute,
 }
