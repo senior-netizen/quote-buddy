@@ -56,6 +56,9 @@ function Detail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { data: activeOrg } = useActiveOrg();
+  const getFiscal = useServerFn(getFiscalConfig);
+  const fiscalize = useServerFn(submitInvoiceToZimra);
+  const { data: fiscalCfg } = useQuery({ queryKey: ["fiscal-config"], queryFn: () => getFiscal() });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const { data: doc, isLoading, refetch } = useQuery({
@@ -103,6 +106,20 @@ function Detail() {
       verifyUrl,
       docHash: hash,
       signatureId: sig,
+      fiscal:
+        d.fiscal_status === "submitted" && d.verification_code && d.receipt_global_no && d.receipt_qr_url
+          ? {
+              verificationCode: d.verification_code,
+              receiptGlobalNo: d.receipt_global_no,
+              receiptCounter: d.receipt_counter,
+              fiscalDayNo: d.fiscal_day_no,
+              deviceSerial: fiscalCfg?.device_serial ?? null,
+              deviceId: fiscalCfg?.device_id ?? null,
+              vatNumber: fiscalCfg?.vat_number ?? null,
+              tin: fiscalCfg?.tax_payer_tin ?? null,
+              receiptQrUrl: d.receipt_qr_url,
+            }
+          : null,
     };
   };
 
