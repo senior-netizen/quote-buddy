@@ -41,6 +41,13 @@ type DocFull = {
   notes: string | null;
   client_id: string;
   client: { company_name: string; address: string | null; email: string | null; phone: string | null } | null;
+  fiscal_status: string;
+  fiscal_day_no: number | null;
+  receipt_global_no: number | null;
+  receipt_counter: number | null;
+  verification_code: string | null;
+  receipt_qr_url: string | null;
+  fiscal_error: string | null;
 };
 
 function Detail() {
