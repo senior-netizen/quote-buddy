@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import logo from "@/assets/quoteflow-logo.png.asset.json";
 
 export const Route = createFileRoute("/")({ component: Index });
 
