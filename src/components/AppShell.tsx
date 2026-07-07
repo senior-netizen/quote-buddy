@@ -2,6 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Users, FileText, Plus, LogOut, Menu, X, Settings, Building2, ChevronDown, Check } from "lucide-react";
+import logo from "@/assets/quoteflow-logo.png.asset.json";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useActiveOrg, useMyOrganizations, useSwitchActiveOrg } from "@/lib/org";
