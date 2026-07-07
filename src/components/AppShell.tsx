@@ -55,8 +55,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-hairline bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:gap-6 sm:px-6">
           <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
-            <Building2 className="h-5 w-5" />
-            <span className="hidden sm:inline text-[10px] uppercase tracking-[0.2em] text-muted-foreground">QuoteFlow</span>
+            <img src={logo.url} alt="Qouteflow" className="h-6 w-6 object-contain" />
+            <span className="text-[14px] font-semibold tracking-tight">Qouteflow</span>
           </Link>
           <OrgSwitcher />
           <nav className="hidden md:flex items-center gap-1">
