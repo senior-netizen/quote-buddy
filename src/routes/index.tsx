@@ -15,9 +15,9 @@ function Index() {
   return (
     <div className="min-h-screen bg-background">
       <header className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <div className="flex items-baseline gap-2 min-w-0">
-          <span className="text-[17px] font-semibold tracking-tight">Squirrellabs</span>
-          <span className="hidden sm:inline text-[10px] uppercase tracking-[0.2em] text-muted-foreground">QuoteFlow</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <img src={logo.url} alt="Qouteflow" className="h-8 w-8 object-contain" />
+          <span className="text-[17px] font-semibold tracking-tight">Qouteflow</span>
         </div>
         <Link to="/login" className="text-[13px] text-muted-foreground hover:text-foreground whitespace-nowrap">
           Sign in →
