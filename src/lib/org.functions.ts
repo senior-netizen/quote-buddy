@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendOrganizationInvitationEmail } from "@/lib/email.server";
 
 // ============================================================
 // Types
@@ -362,6 +363,22 @@ export const inviteMember = createServerFn({ method: "POST" })
       .select("id, token, expires_at")
       .single();
     if (error) throw new Error(error.message);
+
+    const { data: org } = await supabaseAdmin
+      .from("organizations")
+      .select("name")
+      .eq("id", data.org_id)
+      .maybeSingle();
+    const appOrigin = process.env.APP_ORIGIN ?? process.env.PUBLIC_APP_ORIGIN;
+    if (!appOrigin) throw new Error("Application origin is not configured");
+
+    await sendOrganizationInvitationEmail({
+      email: data.email.toLowerCase(),
+      organizationName: org?.name ?? "your organization",
+      role: data.role,
+      inviteUrl: `${appOrigin.replace(/\/$/, "")}/invite/${inv.token}`,
+    });
+
     return { id: inv.id, token: inv.token, expires_at: inv.expires_at };
   });
 
