@@ -1,97 +1,196 @@
-import { Resend } from "resend";
+const RESEND_SEND_ENDPOINT = "https://api.resend.com/emails";
+const MAX_RESEND_SEND_ATTEMPTS = 3;
+const INITIAL_RETRY_DELAY_MS = 250;
 
-const DEFAULT_EMAIL_FROM = "My Platform <noreply@yourdomain.co.zw>";
-const DEFAULT_REPLY_TO = "support@yourdomain.co.zw";
+type EmailType = "organization_invitation";
 
-export type SendEmailInput = {
-  to: string | string[];
+type SendEmailParams = {
+  to: string;
   subject: string;
   html: string;
-  text?: string;
-  replyTo?: string;
+  text: string;
+  type: EmailType;
 };
 
-export type SendInvitationEmailInput = {
-  organizationName: string;
-  inviterName?: string | null;
-  inviterEmail?: string | null;
-  recipientEmail: string;
-  token: string;
-  expiresAt: string | Date;
+type ResendErrorContext = {
+  emailType: EmailType;
+  recipient: string;
+  attempt: number;
+  maxAttempts: number;
+  status?: number;
+  reason: string;
 };
 
-function getAppUrl(): string {
-  return (process.env.APP_URL ?? "https://yourdomain.co.zw").replace(/\/$/, "");
+class ResendSendError extends Error {
+  status?: number;
+  transient: boolean;
+
+  constructor(message: string, options: { status?: number; transient: boolean }) {
+    super(message);
+    this.name = "ResendSendError";
+    this.status = options.status;
+    this.transient = options.transient;
+  }
 }
 
-export function buildInvitationUrl(token: string): string {
-  return `${getAppUrl()}/invite/${encodeURIComponent(token)}`;
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is not configured`);
+  return value;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientStatus(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500;
+}
+
+function isNetworkLikeError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  if (error instanceof DOMException && error.name === "AbortError") return true;
+
+  const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "";
+  return ["ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "EAI_AGAIN", "ENOTFOUND"].includes(code);
 }
 
 function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+  return value.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return char;
+    }
+  });
 }
 
-export async function sendEmail({ to, subject, html, text, replyTo = DEFAULT_REPLY_TO }: SendEmailInput) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const { data, error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM ?? DEFAULT_EMAIL_FROM,
-    to,
+function summarizeResendError(error: unknown): Pick<ResendErrorContext, "status" | "reason"> {
+  if (error instanceof ResendSendError) {
+    return { status: error.status, reason: error.message };
+  }
+  if (error instanceof Error) {
+    return { reason: error.name || "network_error" };
+  }
+  return { reason: "unknown_error" };
+}
+
+function shouldRetryResendError(error: unknown): boolean {
+  if (error instanceof ResendSendError) return error.transient;
+  return isNetworkLikeError(error);
+}
+
+function logResendAttemptFailure(error: unknown, context: Omit<ResendErrorContext, "reason" | "status">): void {
+  const summary = summarizeResendError(error);
+  console.warn("Resend email send attempt failed", {
+    ...context,
+    ...summary,
+  });
+}
+
+async function resendSendWithRetry(params: SendEmailParams): Promise<void> {
+  let apiKey: string;
+  let from: string;
+
+  try {
+    apiKey = getRequiredEnv("RESEND_API_KEY");
+    from = getRequiredEnv("RESEND_FROM_EMAIL");
+  } catch {
+    console.warn("Resend email configuration is missing", {
+      emailType: params.type,
+      recipient: params.to,
+      reason: "missing_email_configuration",
+    });
+    throw new Error("Unable to send invitation email. Please verify the email configuration.");
+  }
+
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MAX_RESEND_SEND_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(RESEND_SEND_ENDPOINT, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from,
+          to: params.to,
+          subject: params.subject,
+          html: params.html,
+          text: params.text,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new ResendSendError(`Resend returned HTTP ${response.status}`, {
+          status: response.status,
+          transient: isTransientStatus(response.status),
+        });
+      }
+
+      return;
+    } catch (error) {
+      lastError = error;
+      const retryable = shouldRetryResendError(error);
+      logResendAttemptFailure(error, {
+        emailType: params.type,
+        recipient: params.to,
+        attempt,
+        maxAttempts: MAX_RESEND_SEND_ATTEMPTS,
+      });
+
+      if (!retryable || attempt === MAX_RESEND_SEND_ATTEMPTS) break;
+      await sleep(INITIAL_RETRY_DELAY_MS * 2 ** (attempt - 1));
+    }
+  }
+
+  const retryable = shouldRetryResendError(lastError);
+  throw new Error(
+    retryable
+      ? "Unable to send invitation email after multiple attempts. Please try again shortly."
+      : "Unable to send invitation email. Please verify the invitation details and email configuration.",
+  );
+}
+
+export async function sendOrganizationInvitationEmail(params: {
+  email: string;
+  organizationName: string;
+  role: "owner" | "admin" | "member";
+  inviteUrl: string;
+}): Promise<void> {
+  const escapedOrganizationName = escapeHtml(params.organizationName);
+  const escapedRole = escapeHtml(params.role);
+  const escapedInviteUrl = escapeHtml(params.inviteUrl);
+  const subject = `You're invited to join ${params.organizationName}`;
+  const text = [
+    `You've been invited to join ${params.organizationName} as a ${params.role}.`,
+    "",
+    `Accept the invitation: ${params.inviteUrl}`,
+    "",
+    "If you were not expecting this invitation, you can ignore this email.",
+  ].join("\n");
+  const html = `
+    <p>You've been invited to join <strong>${escapedOrganizationName}</strong> as a <strong>${escapedRole}</strong>.</p>
+    <p><a href="${escapedInviteUrl}">Accept the invitation</a></p>
+    <p>If you were not expecting this invitation, you can ignore this email.</p>
+  `;
+
+  await resendSendWithRetry({
+    to: params.email,
     subject,
     html,
     text,
-    replyTo,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
-}
-
-export async function sendInvitationEmail({
-  organizationName,
-  inviterName,
-  inviterEmail,
-  recipientEmail,
-  token,
-  expiresAt,
-}: SendInvitationEmailInput) {
-  const inviteUrl = buildInvitationUrl(token);
-  const expiry = new Date(expiresAt).toLocaleString("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  });
-  const inviter = inviterName || inviterEmail || "An administrator";
-  const safeOrg = escapeHtml(organizationName);
-  const safeInviter = escapeHtml(inviter);
-  const safeInviteUrl = escapeHtml(inviteUrl);
-  const safeExpiry = escapeHtml(expiry);
-
-  return sendEmail({
-    to: recipientEmail,
-    subject: `You're invited to join ${organizationName}`,
-    text: `${inviter} invited you to join ${organizationName}. Accept your invitation: ${inviteUrl}\n\nThis invitation expires ${expiry} UTC.`,
-    html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
-        <h1 style="font-size: 20px;">You're invited to join ${safeOrg}</h1>
-        <p>${safeInviter} invited you to collaborate in ${safeOrg}.</p>
-        <p>
-          <a href="${safeInviteUrl}" style="display: inline-block; padding: 10px 16px; background: #111827; color: #ffffff; border-radius: 999px; text-decoration: none;">
-            Accept invitation
-          </a>
-        </p>
-        <p>Or copy and paste this link into your browser:</p>
-        <p><a href="${safeInviteUrl}">${safeInviteUrl}</a></p>
-        <p style="color: #6b7280; font-size: 13px;">This invitation expires ${safeExpiry} UTC.</p>
-      </div>
-    `,
+    type: "organization_invitation",
   });
 }
