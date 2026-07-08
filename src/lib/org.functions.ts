@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -319,9 +320,7 @@ export const listMembers = createServerFn({ method: "GET" })
   });
 
 function randomToken(): string {
-  const bytes = new Uint8Array(24);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return randomBytes(32).toString("hex");
 }
 
 export const inviteMember = createServerFn({ method: "POST" })
