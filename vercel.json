@@ -4,6 +4,9 @@
   "installCommand": "npm install",
   "framework": null,
   "env": {
-    "DEPLOY_TARGET": "vercel"
+    "DEPLOY_TARGET": "vercel",
+    "RESEND_API_KEY": "",
+    "APP_URL": "https://yourdomain.co.zw",
+    "EMAIL_FROM": "My Platform <noreply@yourdomain.co.zw>"
   }
 }
