@@ -65,9 +65,16 @@ function InvitePage() {
             {authLoading ? (
               <div className="mt-8 text-sm text-muted-foreground">Loading…</div>
             ) : !user ? (
-              <Link to="/login" className="mt-8 inline-block">
-                <Button className="rounded-full w-full">Sign in to accept</Button>
-              </Link>
+              <div className="mt-8 space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Sign in or create an account before accepting this invitation.
+                </p>
+                <Link to="/login" className="inline-block w-full">
+                  <Button className="w-full rounded-full">
+                    Sign in or create account to accept
+                  </Button>
+                </Link>
+              </div>
             ) : (
               <Button onClick={accept} disabled={busy} className="mt-8 w-full rounded-full">
                 {busy ? "Joining…" : "Accept invitation"}
