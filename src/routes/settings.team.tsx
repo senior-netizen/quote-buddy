@@ -55,7 +55,7 @@ function Team() {
       return inviteFn({ data: { org_id: orgId, email: email.trim(), role } });
     },
     onSuccess: () => {
-      toast.success("Invitation created");
+      toast.success("Invitation email sent");
       setEmail("");
       qc.invalidateQueries({ queryKey: ["invites", orgId] });
     },
@@ -90,7 +90,7 @@ function Team() {
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            We don't send emails yet — copy the invitation link below and share it with the person.
+            We'll email the invitation and keep a pending link below so admins can copy it if needed.
           </p>
         </section>
       )}
@@ -188,7 +188,7 @@ function Team() {
                             size="sm"
                             onClick={async () => {
                               await navigator.clipboard.writeText(link);
-                              toast.success("Link copied");
+                              toast.success("Pending invitation link copied");
                             }}
                           >
                             <Copy className="h-3.5 w-3.5" />

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendInvitationEmail } from "@/lib/email.server";
 
 // ============================================================
 // Types
@@ -362,6 +363,34 @@ export const inviteMember = createServerFn({ method: "POST" })
       .select("id, token, expires_at")
       .single();
     if (error) throw new Error(error.message);
+
+    const [{ data: org }, { data: inviterProfile }, { data: inviterUser }] = await Promise.all([
+      supabaseAdmin.from("organizations").select("name").eq("id", data.org_id).single(),
+      supabaseAdmin.from("profiles").select("display_name").eq("user_id", context.userId).maybeSingle(),
+      supabaseAdmin.auth.admin.getUserById(context.userId),
+    ]);
+
+    try {
+      await sendInvitationEmail({
+        organizationName: org?.name ?? "your organization",
+        inviterName: inviterProfile?.display_name ?? null,
+        inviterEmail: inviterUser?.user?.email ?? null,
+        recipientEmail: data.email.toLowerCase(),
+        token: inv.token,
+        expiresAt: inv.expires_at,
+      });
+    } catch (deliveryError) {
+      console.error("Failed to send organization invitation email", {
+        invitationId: inv.id,
+        orgId: data.org_id,
+        recipientEmail: data.email.toLowerCase(),
+        error: deliveryError,
+      });
+      throw new Error(
+        "Invitation was created, but we could not send the email. Copy the pending invitation link and share it manually.",
+      );
+    }
+
     return { id: inv.id, token: inv.token, expires_at: inv.expires_at };
   });
 
