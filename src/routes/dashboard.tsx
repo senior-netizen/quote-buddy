@@ -18,6 +18,19 @@ function Page() {
   );
 }
 
+type RecentDocument = {
+  id: string;
+  doc_type: string;
+  doc_number: string | null;
+  total: number | string | null;
+  client: { company_name: string | null } | { company_name: string | null }[] | null;
+};
+
+function getClientName(client: RecentDocument["client"]) {
+  const record = Array.isArray(client) ? client[0] : client;
+  return record?.company_name ?? "—";
+}
+
 function Dashboard() {
   const { data: docs = [] } = useQuery({
     queryKey: ["recent-docs"],
@@ -28,7 +41,7 @@ function Dashboard() {
         .order("created_at", { ascending: false })
         .limit(8);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as RecentDocument[];
     },
   });
 
@@ -101,7 +114,7 @@ function Dashboard() {
                           {d.doc_type === "quote" ? "Quote" : "Invoice"}
                         </span>
                       </td>
-                      <td className="px-5 py-3">{(d.client as { company_name: string } | null)?.company_name ?? "—"}</td>
+                      <td className="px-5 py-3">{getClientName(d.client)}</td>
                       <td className="px-5 py-3 text-right tabular">{formatMoney(Number(d.total))}</td>
                       <td className="px-3 py-3 text-right">
                         <Link to="/documents/$id" params={{ id: d.id }} className="text-muted-foreground hover:text-foreground">
