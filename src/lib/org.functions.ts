@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendOrganizationInvitationEmail } from "@/lib/email.server";
+import { sendOrganizationInvitationEmail, verifyInvitationEmailConfiguration } from "@/lib/email.server";
 
 // ============================================================
 // Types
@@ -323,6 +323,23 @@ export const listMembers = createServerFn({ method: "GET" })
 function randomToken(): string {
   return randomBytes(32).toString("hex");
 }
+
+export const verifyEmailConfiguration = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ org_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: m } = await supabaseAdmin
+      .from("organization_members")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("org_id", data.org_id)
+      .maybeSingle();
+    if (!m || (m.role !== "admin" && m.role !== "owner")) {
+      throw new Error("Only admins or owners can verify email configuration");
+    }
+
+    return verifyInvitationEmailConfiguration();
+  });
 
 export const inviteMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

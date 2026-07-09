@@ -10,12 +10,13 @@ import {
   revokeInvitation,
   removeMember,
   changeMemberRole,
+  verifyEmailConfiguration,
 } from "@/lib/org.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, Trash2 } from "lucide-react";
+import { CheckCircle2, Copy, Trash2, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/settings/team")({ component: Team });
 
@@ -32,6 +33,7 @@ function Team() {
   const revokeFn = useServerFn(revokeInvitation);
   const removeFn = useServerFn(removeMember);
   const changeFn = useServerFn(changeMemberRole);
+  const verifyEmailFn = useServerFn(verifyEmailConfiguration);
 
   const members = useQuery({
     queryKey: ["members", orgId],
@@ -46,6 +48,7 @@ function Team() {
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("member");
+  const [emailCheck, setEmailCheck] = useState<Awaited<ReturnType<typeof verifyEmailFn>> | null>(null);
 
   const canAdmin = activeOrg?.role === "owner" || activeOrg?.role === "admin";
 
@@ -58,6 +61,22 @@ function Team() {
       toast.success("Invitation email sent");
       setEmail("");
       qc.invalidateQueries({ queryKey: ["invites", orgId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const verifyEmail = useMutation({
+    mutationFn: async () => {
+      if (!orgId) throw new Error("No org");
+      return verifyEmailFn({ data: { org_id: orgId } });
+    },
+    onSuccess: (result) => {
+      setEmailCheck(result);
+      if (result.ok) {
+        toast.success("Invitation email configuration verified");
+      } else {
+        toast.error("Invitation email configuration needs attention");
+      }
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
@@ -89,9 +108,49 @@ function Team() {
               {send.isPending ? "Sending…" : "Invite"}
             </Button>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            We'll email the invitation and keep a pending link below so admins can copy it if needed.
-          </p>
+          <div className="space-y-2">
+            <p className="text-[11px] text-muted-foreground">
+              We'll email the invitation and keep a pending link below so admins can copy it if needed.
+            </p>
+            <div className="rounded-xl border border-hairline bg-secondary/30 p-3 text-xs">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-medium">Resend invitation email configuration</p>
+                  <p className="text-muted-foreground">
+                    Verify APP_ORIGIN, sender address, API access, and sender domain readiness before sending invites.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => verifyEmail.mutate()}
+                  disabled={verifyEmail.isPending}
+                  className="rounded-full"
+                >
+                  {verifyEmail.isPending ? "Checking…" : "Verify email"}
+                </Button>
+              </div>
+              {emailCheck && (
+                <div className="mt-3 flex gap-2">
+                  {emailCheck.ok ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-green-600" />
+                  ) : (
+                    <XCircle className="mt-0.5 h-4 w-4 text-destructive" />
+                  )}
+                  <div className="space-y-1">
+                    <p className="font-medium">{emailCheck.ok ? "Ready to send invitations" : "Configuration check failed"}</p>
+                    <ul className="list-disc space-y-0.5 pl-4 text-muted-foreground">
+                      {emailCheck.messages.map((message) => (
+                        <li key={message}>{message}</li>
+                      ))}
+                      {emailCheck.fromDomain && <li>Sender domain: {emailCheck.fromDomain}</li>}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </section>
       )}
 
