@@ -217,6 +217,51 @@ export type Database = {
           },
         ]
       }
+      receipt_status: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          message: string | null
+          metadata: Json | null
+          org_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          org_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_status_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_status_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fiscal_days: {
         Row: {
           closed_at: string | null
@@ -657,7 +702,32 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      current_receipt_status: {
+        Row: {
+          created_at: string | null
+          document_id: string | null
+          message: string | null
+          metadata: Json | null
+          org_id: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_status_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_status_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       allocate_fiscal_receipt_counters: {

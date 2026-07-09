@@ -19,6 +19,25 @@ import { FiscalCounterManager, ReceiptValidator } from "@/lib/fiscal";
 
 type UserClient = SupabaseClient<Database>;
 
+type ReceiptStatus = "Draft" | "Ready" | "Signed" | "Submitted" | "Accepted" | "Rejected" | "Retrying" | "Cancelled";
+
+async function appendReceiptStatus(
+  documentId: string,
+  orgId: string,
+  status: ReceiptStatus,
+  message?: string,
+  metadata?: Json,
+) {
+  const { error } = await supabaseAdmin.from("receipt_status").insert({
+    document_id: documentId,
+    org_id: orgId,
+    status,
+    message: message ?? null,
+    metadata: metadata ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
 // ============================================================
 // Types
 // ============================================================
@@ -455,13 +474,23 @@ export const closeFiscalDay = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!openRow) throw new Error("No fiscal day is currently open");
 
-    // Sum receipts submitted during this day
-    const { data: receipts } = await supabaseAdmin
-      .from("documents")
-      .select("total, tax_amount")
+    // Sum receipts accepted during this day. The current status comes from the immutable receipt_status event log.
+    const { data: acceptedStatuses } = await supabaseAdmin
+      .from("current_receipt_status")
+      .select("document_id")
       .eq("org_id", orgId)
-      .eq("fiscal_day_no", openRow.fiscal_day_no)
-      .eq("fiscal_status", "submitted");
+      .eq("status", "Accepted");
+    const acceptedDocumentIds = (acceptedStatuses ?? [])
+      .map((r) => r.document_id)
+      .filter((documentId): documentId is string => Boolean(documentId));
+    const { data: receipts } = acceptedDocumentIds.length
+      ? await supabaseAdmin
+          .from("documents")
+          .select("total, tax_amount")
+          .eq("org_id", orgId)
+          .eq("fiscal_day_no", openRow.fiscal_day_no)
+          .in("id", acceptedDocumentIds)
+      : { data: [] };
     const totalSales = (receipts ?? []).reduce((s, r) => s + Number(r.total ?? 0), 0);
     const totalTax = (receipts ?? []).reduce((s, r) => s + Number(r.tax_amount ?? 0), 0);
     const totals = { totalSales, totalTax, receiptCount: (receipts ?? []).length };
@@ -540,7 +569,12 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
       .maybeSingle();
     if (docErr || !doc) throw new Error("Document not found");
     if (doc.doc_type !== "invoice") throw new Error("Only invoices can be fiscalised");
-    if (doc.fiscal_status === "submitted") throw new Error("Already submitted to ZIMRA");
+    const { data: currentStatus } = await supabaseAdmin
+      .from("current_receipt_status")
+      .select("status")
+      .eq("document_id", doc.id)
+      .maybeSingle();
+    if (currentStatus?.status === "Accepted") throw new Error("Already submitted to ZIMRA");
 
     const { env, device, row } = await loadDevice(orgId);
     const allocation = await FiscalCounterManager.allocateInvoiceCounters(orgId, doc.id);
@@ -552,15 +586,25 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
     const fiscalDayNo = allocation.fiscalDayNo;
     const receiptDate = new Date().toISOString().slice(0, 19); // yyyy-MM-ddTHH:mm:ss
 
-    // Last submitted receipt hash → previousReceiptHash chain
-    const { data: prevRow } = await supabaseAdmin
-      .from("documents")
-      .select("receipt_hash")
+    // Last accepted receipt hash → previousReceiptHash chain.
+    const { data: acceptedStatusesForHash } = await supabaseAdmin
+      .from("current_receipt_status")
+      .select("document_id")
       .eq("org_id", orgId)
-      .eq("fiscal_status", "submitted")
-      .order("receipt_global_no", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq("status", "Accepted");
+    const acceptedIdsForHash = (acceptedStatusesForHash ?? [])
+      .map((r) => r.document_id)
+      .filter((documentId): documentId is string => Boolean(documentId));
+    const { data: prevRow } = acceptedIdsForHash.length
+      ? await supabaseAdmin
+          .from("documents")
+          .select("receipt_hash")
+          .eq("org_id", orgId)
+          .in("id", acceptedIdsForHash)
+          .order("receipt_global_no", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
     const previousReceiptHash = prevRow?.receipt_hash ?? "";
 
     // Build tax line: single VAT rate for the whole invoice (matches app model)
@@ -630,16 +674,23 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
       },
     };
 
+    await appendReceiptStatus(doc.id, orgId, "Ready", "Receipt payload prepared");
+    await appendReceiptStatus(doc.id, orgId, "Signed", "Receipt hash and verification code generated", {
+      receipt_global_no: receiptGlobalNo,
+      receipt_counter: receiptCounter,
+      verification_code: verificationCode,
+    } as unknown as Json);
+    await appendReceiptStatus(doc.id, orgId, "Submitted", "Submitting receipt to FDMS");
+
     const submission = await fdmsSubmitReceipt(env, device, receiptPayload);
 
     if (!submission.ok) {
-      await FiscalCounterManager.markFailed(doc.id);
+      await appendReceiptStatus(doc.id, orgId, "Rejected", submission.error.message, (submission.error.raw ?? null) as unknown as Json);
       await supabaseAdmin
         .from("documents")
         .update({
-          fiscal_status: "failed",
-          fiscal_error: redactFdmsError(submission.error).message,
-          fiscal_response: (redactFdmsError(submission.error).raw ?? null) as unknown as Json,
+          fiscal_error: submission.error.message,
+          fiscal_response: (submission.error.raw ?? null) as unknown as Json,
           fiscal_submitted_at: new Date().toISOString(),
         })
         .eq("id", doc.id);
@@ -648,13 +699,12 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
 
     const qrUrl = `https://receipt.zimra.co.zw/${device.deviceId}/${receiptGlobalNo}/${verificationCode}`;
 
-    const submittedAt = new Date().toISOString();
+    await appendReceiptStatus(doc.id, orgId, "Accepted", "FDMS accepted receipt", submission.data as unknown as Json);
 
     await supabaseAdmin
       .from("documents")
       .update({
-        fiscal_status: "submitted",
-        fiscal_day_no: fiscalDayNo,
+        fiscal_day_no: openDay.fiscal_day_no,
         receipt_global_no: receiptGlobalNo,
         receipt_counter: receiptCounter,
         receipt_hash: hashBase64,
