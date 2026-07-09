@@ -12,6 +12,7 @@ export const Route = createFileRoute("/invite/$token")({ component: InvitePage }
 
 function InvitePage() {
   const { token } = Route.useParams();
+  const inviteRedirect = `/invite/${encodeURIComponent(token)}`;
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const lookupFn = useServerFn(getInvitation);
@@ -69,7 +70,7 @@ function InvitePage() {
                 <p className="text-sm text-muted-foreground">
                   Sign in or create an account before accepting this invitation.
                 </p>
-                <Link to="/login" className="inline-block w-full">
+                <Link to="/login" search={{ redirect: inviteRedirect }} className="inline-block w-full">
                   <Button className="w-full rounded-full">
                     Sign in or create account to accept
                   </Button>
