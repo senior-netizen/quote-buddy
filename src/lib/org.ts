@@ -16,12 +16,45 @@ export type { ActiveOrg, OrgListItem, OrgProfile };
 const ACTIVE_ORG_KEY = ["active-org"] as const;
 const MY_ORGS_KEY = ["my-orgs"] as const;
 
+function profileFallback(activeOrg: Pick<ActiveOrg, "org_id" | "org_name">): OrgProfile {
+  return {
+    org_id: activeOrg.org_id,
+    name: activeOrg.org_name,
+    short_name: null,
+    logo_url: null,
+    emails: [],
+    website: null,
+    registration: null,
+    tin: null,
+    duns: null,
+    praz: null,
+    currency: "USD",
+    default_tax_rate: 15,
+    address: null,
+    phone: null,
+    payment_instructions: null,
+  };
+}
+
+function normalizeActiveOrg(activeOrg: ActiveOrg | null): ActiveOrg | null {
+  if (!activeOrg) return activeOrg;
+
+  return {
+    ...activeOrg,
+    profile: {
+      ...profileFallback(activeOrg),
+      ...(activeOrg.profile ?? {}),
+      emails: activeOrg.profile?.emails ?? [],
+    },
+  };
+}
+
 /** React hook: returns the user's active organization (with brand profile). */
 export function useActiveOrg() {
   const getActive = useServerFn(getActiveOrg);
   return useQuery({
     queryKey: ACTIVE_ORG_KEY,
-    queryFn: () => getActive(),
+    queryFn: async () => normalizeActiveOrg(await getActive()),
     staleTime: 60_000,
   });
 }

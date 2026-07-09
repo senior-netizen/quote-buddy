@@ -216,12 +216,14 @@ function OrgSwitcher() {
 
   if (!activeOrg) return null;
 
+  const activeOrgProfile = activeOrg.profile;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1 text-[12px] hover:bg-secondary/50 max-w-[180px]">
-          {activeOrg.profile.logo_url ? (
-            <img src={activeOrg.profile.logo_url} alt="" className="h-4 w-4 rounded object-contain" />
+          {activeOrgProfile?.logo_url ? (
+            <img src={activeOrgProfile.logo_url} alt="" className="h-4 w-4 rounded object-contain" />
           ) : (
             <Building2 className="h-3.5 w-3.5 shrink-0" />
           )}
