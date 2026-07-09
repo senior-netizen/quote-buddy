@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Users, FileText, Plus, LogOut, Menu, X, Settings, Building2, ChevronDown, Check } from "lucide-react";
 import logo from "@/assets/quoteflow-logo.png.asset.json";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useActiveOrg, useMyOrganizations, useSwitchActiveOrg } from "@/lib/org";
 import { useServerFn } from "@tanstack/react-start";
@@ -20,6 +20,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const AUTH_CONFIGURATION_ERROR_PATTERNS = ["invalid api key", "missing supabase", "unauthorized"] as const;
+
+const ORGANIZATION_CREATE_ERROR_MESSAGE =
+  "We couldn’t create the organization. Please try again or contact support.";
+
+const SESSION_VERIFICATION_ERROR_MESSAGE =
+  "We couldn’t verify your session. Please sign out and sign in again. If this continues, contact support.";
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error ?? "");
+}
+
+function isAuthConfigurationError(error: unknown) {
+  const message = errorMessage(error).toLowerCase();
+  return AUTH_CONFIGURATION_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
+function organizationCreateToastMessage(error: unknown) {
+  return isAuthConfigurationError(error) ? SESSION_VERIFICATION_ERROR_MESSAGE : ORGANIZATION_CREATE_ERROR_MESSAGE;
+}
+
 const nav = [
   { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { to: "/documents/new", label: "Create", icon: Plus },
@@ -32,7 +53,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
-  const { data: activeOrg, isLoading: orgLoading, isError: orgError, error } = useActiveOrg();
+  const { data: activeOrg, error: activeOrgError, isError: activeOrgIsError, isLoading: orgLoading } = useActiveOrg();
+
+  useEffect(() => {
+    if (activeOrgIsError) {
+      console.error("Failed to load active organization", activeOrgError);
+    }
+  }, [activeOrgError, activeOrgIsError]);
 
   const handleSignOut = async () => {
     try {
@@ -45,8 +72,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   };
 
-  if (orgError) {
-    return <OrganizationErrorScreen message={error instanceof Error ? error.message : "Please try again."} />;
+  if (activeOrgIsError) {
+    return <ActiveOrgErrorScreen error={activeOrgError} onSignOut={handleSignOut} />;
   }
 
   // Onboarding gate: user has no organization yet
@@ -148,6 +175,32 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
+function ActiveOrgErrorScreen({ error, onSignOut }: { error: unknown; onSignOut: () => void | Promise<void> }) {
+  const message = isAuthConfigurationError(error)
+    ? SESSION_VERIFICATION_ERROR_MESSAGE
+    : "We couldn’t load your organization. Please refresh the page or contact support if this continues.";
+
+  return (
+    <div className="flex min-h-screen items-center justify-center px-6">
+      <div className="w-full max-w-md rounded-xl border border-hairline bg-background p-6 text-center shadow-sm">
+        <Building2 className="mx-auto h-8 w-8 text-muted-foreground" />
+        <h1 className="mt-6 text-2xl font-semibold tracking-tight">We couldn’t load your workspace</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <Button type="button" onClick={() => window.location.reload()} className="rounded-full">
+            Refresh
+          </Button>
+          {isAuthConfigurationError(error) && (
+            <Button type="button" variant="outline" onClick={onSignOut} className="rounded-full">
+              Sign out
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OrgSwitcher() {
   const { data: activeOrg } = useActiveOrg();
   const { data: orgs = [] } = useMyOrganizations();
@@ -207,7 +260,8 @@ function OrgSwitcher() {
                     setName("");
                     navigate({ to: "/settings/organization" });
                   } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Failed");
+                    console.error("Failed to create organization from switcher", err);
+                    toast.error(organizationCreateToastMessage(err));
                   }
                 }
               }}
@@ -259,7 +313,8 @@ function OnboardingScreen() {
       toast.success("Workspace created");
       navigate({ to: "/settings/organization" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
+      console.error("Failed to create organization during onboarding", err);
+      toast.error(organizationCreateToastMessage(err));
     } finally {
       setBusy(false);
     }
