@@ -2,7 +2,6 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Users, FileText, Plus, LogOut, Menu, X, Settings, Building2, ChevronDown, Check } from "lucide-react";
-import logo from "@/assets/quoteflow-logo.png.asset.json";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useActiveOrg, useMyOrganizations, useSwitchActiveOrg } from "@/lib/org";
@@ -86,7 +85,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-hairline bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:gap-6 sm:px-6">
           <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
-            <img src={logo.url} alt="Qouteflow" className="h-6 w-6 object-contain" />
+            <img
+              src="/ChatGPT%20Image%20Jul%207%2C%202026%2C%2011_23_14%20AM.png"
+              alt="Qouteflow"
+              className="h-6 w-6 object-contain"
+            />
             <span className="text-[14px] font-semibold tracking-tight">Qouteflow</span>
           </Link>
           <OrgSwitcher />
