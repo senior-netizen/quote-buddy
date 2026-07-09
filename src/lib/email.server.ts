@@ -1,3 +1,5 @@
+import { createInvitationEmailTemplate } from "@/lib/email/templates/invitation";
+
 const RESEND_API_BASE_URL = "https://api.resend.com";
 const RESEND_SEND_ENDPOINT = `${RESEND_API_BASE_URL}/emails`;
 const MAX_RESEND_SEND_ATTEMPTS = 3;
@@ -169,25 +171,6 @@ function isNetworkLikeError(error: unknown): boolean {
   return ["ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "EAI_AGAIN", "ENOTFOUND"].includes(code);
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (char) => {
-    switch (char) {
-      case "&":
-        return "&amp;";
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case '"':
-        return "&quot;";
-      case "'":
-        return "&#39;";
-      default:
-        return char;
-    }
-  });
-}
-
 function summarizeResendError(error: unknown): Pick<ResendErrorContext, "status" | "reason"> {
   if (error instanceof ResendSendError) {
     return { status: error.status, reason: error.message };
@@ -279,32 +262,27 @@ async function resendSendWithRetry(params: SendEmailParams): Promise<void> {
 
 export async function sendOrganizationInvitationEmail(params: {
   email: string;
+  appUrl?: string;
+  token: string;
   organizationName: string;
-  role: "owner" | "admin" | "member";
-  inviteUrl: string;
+  inviterNameOrEmail?: string | null;
+  expiresAt: Date | string;
 }): Promise<void> {
-  const escapedOrganizationName = escapeHtml(params.organizationName);
-  const escapedRole = escapeHtml(params.role);
-  const escapedInviteUrl = escapeHtml(params.inviteUrl);
-  const subject = `You're invited to join ${params.organizationName}`;
-  const text = [
-    `You've been invited to join ${params.organizationName} as a ${params.role}.`,
-    "",
-    `Accept the invitation: ${params.inviteUrl}`,
-    "",
-    "If you were not expecting this invitation, you can ignore this email.",
-  ].join("\n");
-  const html = `
-    <p>You've been invited to join <strong>${escapedOrganizationName}</strong> as a <strong>${escapedRole}</strong>.</p>
-    <p><a href="${escapedInviteUrl}">Accept the invitation</a></p>
-    <p>If you were not expecting this invitation, you can ignore this email.</p>
-  `;
+  const appUrl = params.appUrl ?? getConfiguredAppOrigin();
+  if (!appUrl) throw new Error("Application origin is not configured");
+  const template = createInvitationEmailTemplate({
+    appUrl,
+    token: params.token,
+    organizationName: params.organizationName,
+    inviterNameOrEmail: params.inviterNameOrEmail?.trim() || "Your team",
+    expiresAt: params.expiresAt,
+  });
 
   await resendSendWithRetry({
     to: params.email,
-    subject,
-    html,
-    text,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
     type: "organization_invitation",
   });
 }
