@@ -23,7 +23,11 @@ These do not come from Supabase, but the app expects them for invitation emails.
 | `APP_ORIGIN` | Building invitation links | Example: `https://yourdomain.co.zw`. |
 | `PUBLIC_APP_ORIGIN` | Fallback for `APP_ORIGIN` | Optional if `APP_ORIGIN` is set. |
 | `RESEND_API_KEY` | Sending invitation emails | Get this from Resend. |
-| `RESEND_FROM_EMAIL` | Sending invitation emails | Example: `My Platform <noreply@yourdomain.co.zw>`. |
+| `RESEND_FROM_EMAIL` | Sending invitation emails | Example: `My Platform <noreply@yourdomain.co.zw>`. The domain must be added to Resend and verified/enabled for sending. |
+
+## Verifying invitation email delivery
+
+Admins and owners can open **Settings > Team** and click **Verify email** before sending invitations. The check confirms that an app origin is configured, the Resend API key is accepted, and the `RESEND_FROM_EMAIL` sender domain exists in Resend and is ready for sending.
 
 ## Optional helpers
 

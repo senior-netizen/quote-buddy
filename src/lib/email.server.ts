@@ -1,8 +1,28 @@
-const RESEND_SEND_ENDPOINT = "https://api.resend.com/emails";
+const RESEND_API_BASE_URL = "https://api.resend.com";
+const RESEND_SEND_ENDPOINT = `${RESEND_API_BASE_URL}/emails`;
 const MAX_RESEND_SEND_ATTEMPTS = 3;
 const INITIAL_RETRY_DELAY_MS = 250;
 
 type EmailType = "organization_invitation";
+
+export type EmailConfigurationCheck = {
+  ok: boolean;
+  appOriginConfigured: boolean;
+  resendApiKeyConfigured: boolean;
+  resendFromEmailConfigured: boolean;
+  resendApiReachable: boolean;
+  fromDomain: string | null;
+  fromDomainVerified: boolean | null;
+  messages: string[];
+};
+
+type ResendDomain = {
+  name?: string;
+  status?: string;
+  capabilities?: {
+    sending?: string;
+  };
+};
 
 type SendEmailParams = {
   to: string;
@@ -30,6 +50,100 @@ class ResendSendError extends Error {
     this.name = "ResendSendError";
     this.status = options.status;
     this.transient = options.transient;
+  }
+}
+
+function getConfiguredAppOrigin(): string | null {
+  return process.env.APP_ORIGIN || process.env.PUBLIC_APP_ORIGIN || null;
+}
+
+function getFromEmailDomain(from: string): string | null {
+  const angleMatch = from.match(/<[^@<>\s]+@([^<>\s]+)>/);
+  const emailLike = angleMatch?.[0] ?? from;
+  const domainMatch = emailLike.match(/@([^>\s]+)>?$/);
+  return domainMatch?.[1]?.toLowerCase() ?? null;
+}
+
+function isDomainUsableForSending(domain: ResendDomain): boolean {
+  return domain.status === "verified" || domain.capabilities?.sending === "enabled";
+}
+
+export async function verifyInvitationEmailConfiguration(): Promise<EmailConfigurationCheck> {
+  const appOrigin = getConfiguredAppOrigin();
+  const apiKey = process.env.RESEND_API_KEY || null;
+  const from = process.env.RESEND_FROM_EMAIL || null;
+  const fromDomain = from ? getFromEmailDomain(from) : null;
+  const messages: string[] = [];
+
+  if (!appOrigin) messages.push("APP_ORIGIN or PUBLIC_APP_ORIGIN is required to build invitation links.");
+  if (!apiKey) messages.push("RESEND_API_KEY is required to authenticate with Resend.");
+  if (!from) messages.push("RESEND_FROM_EMAIL is required so Resend knows the sender address.");
+  if (from && !fromDomain) messages.push("RESEND_FROM_EMAIL must contain a valid email address domain.");
+
+  if (!apiKey || !from || !fromDomain) {
+    return {
+      ok: false,
+      appOriginConfigured: Boolean(appOrigin),
+      resendApiKeyConfigured: Boolean(apiKey),
+      resendFromEmailConfigured: Boolean(from),
+      resendApiReachable: false,
+      fromDomain,
+      fromDomainVerified: null,
+      messages,
+    };
+  }
+
+  try {
+    const response = await fetch(`${RESEND_API_BASE_URL}/domains`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    if (!response.ok) {
+      messages.push(`Resend API returned HTTP ${response.status} while checking domains.`);
+      return {
+        ok: false,
+        appOriginConfigured: Boolean(appOrigin),
+        resendApiKeyConfigured: true,
+        resendFromEmailConfigured: true,
+        resendApiReachable: false,
+        fromDomain,
+        fromDomainVerified: null,
+        messages,
+      };
+    }
+
+    const payload = (await response.json()) as { data?: ResendDomain[] };
+    const matchingDomain = payload.data?.find((domain) => domain.name?.toLowerCase() === fromDomain) ?? null;
+    const fromDomainVerified = matchingDomain ? isDomainUsableForSending(matchingDomain) : false;
+
+    if (!matchingDomain) {
+      messages.push(`The sender domain ${fromDomain} was not found in Resend.`);
+    } else if (!fromDomainVerified) {
+      messages.push(`The sender domain ${fromDomain} is not verified or enabled for sending in Resend.`);
+    }
+
+    return {
+      ok: Boolean(appOrigin) && fromDomainVerified,
+      appOriginConfigured: Boolean(appOrigin),
+      resendApiKeyConfigured: true,
+      resendFromEmailConfigured: true,
+      resendApiReachable: true,
+      fromDomain,
+      fromDomainVerified,
+      messages: messages.length > 0 ? messages : ["Invitation email configuration is ready."],
+    };
+  } catch (error) {
+    messages.push(error instanceof Error ? error.message : "Unable to reach Resend API.");
+    return {
+      ok: false,
+      appOriginConfigured: Boolean(appOrigin),
+      resendApiKeyConfigured: true,
+      resendFromEmailConfigured: true,
+      resendApiReachable: false,
+      fromDomain,
+      fromDomainVerified: null,
+      messages,
+    };
   }
 }
 
