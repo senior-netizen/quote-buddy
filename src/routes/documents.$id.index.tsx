@@ -28,6 +28,8 @@ function Page() {
   );
 }
 
+type ReceiptStatus = "Draft" | "Ready" | "Signed" | "Submitted" | "Accepted" | "Rejected" | "Retrying" | "Cancelled";
+
 type DocFull = {
   id: string;
   doc_type: "quote" | "invoice";
@@ -44,6 +46,8 @@ type DocFull = {
   client_id: string;
   client: { company_name: string; address: string | null; email: string | null; phone: string | null } | null;
   fiscal_status: string;
+  current_receipt_status: ReceiptStatus;
+  current_receipt_status_message: string | null;
   fiscal_day_no: number | null;
   receipt_global_no: number | null;
   receipt_counter: number | null;
@@ -70,7 +74,17 @@ function Detail() {
         .eq("id", id)
         .single();
       if (error) throw error;
-      return data as unknown as DocFull;
+      const { data: status, error: statusError } = await supabase
+        .from("current_receipt_status")
+        .select("status, message")
+        .eq("document_id", id)
+        .maybeSingle();
+      if (statusError) throw statusError;
+      return {
+        ...(data as unknown as DocFull),
+        current_receipt_status: (status?.status ?? "Draft") as ReceiptStatus,
+        current_receipt_status_message: status?.message ?? null,
+      };
     },
   });
 
@@ -107,7 +121,7 @@ function Detail() {
       docHash: hash,
       signatureId: sig,
       fiscal:
-        d.fiscal_status === "submitted" && d.verification_code && d.receipt_global_no && d.receipt_qr_url
+        d.current_receipt_status === "Accepted" && d.verification_code && d.receipt_global_no && d.receipt_qr_url
           ? {
               verificationCode: d.verification_code,
               receiptGlobalNo: d.receipt_global_no,
@@ -225,7 +239,7 @@ function Detail() {
               <span className="sm:hidden">{convert.isPending ? "…" : "Convert"}</span>
             </Button>
           )}
-          {doc.doc_type === "invoice" && fiscalCfg?.enabled && doc.fiscal_status !== "submitted" && (
+          {doc.doc_type === "invoice" && fiscalCfg?.enabled && doc.current_receipt_status !== "Accepted" && (
             <Button
               variant="outline"
               className="rounded-full"
@@ -239,7 +253,7 @@ function Detail() {
               <Receipt className="mr-1.5 h-3.5 w-3.5" />Fiscalise
             </Button>
           )}
-          {doc.fiscal_status === "submitted" && (
+          {doc.current_receipt_status === "Accepted" && (
             <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs text-green-800">
               ZIMRA · {doc.verification_code}
             </span>
@@ -325,6 +339,22 @@ function Detail() {
         </div>
 
         <aside className="space-y-4">
+          {doc.doc_type === "invoice" && fiscalCfg?.enabled && (
+            <div className="rounded-2xl border border-hairline bg-card p-6">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Fiscal receipt state</div>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="inline-flex rounded-full bg-muted px-3 py-1 text-sm font-medium">
+                  {doc.current_receipt_status}
+                </span>
+              </div>
+              {doc.current_receipt_status_message && (
+                <p className="mt-3 text-xs text-muted-foreground">{doc.current_receipt_status_message}</p>
+              )}
+              {doc.fiscal_error && doc.current_receipt_status === "Rejected" && (
+                <p className="mt-3 text-xs text-destructive">{doc.fiscal_error}</p>
+              )}
+            </div>
+          )}
           <div className="rounded-2xl border border-hairline bg-card p-6">
             <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Total</div>
             <div className="mt-2 text-3xl font-semibold tracking-tight tabular">{formatMoney(Number(doc.total))}</div>
