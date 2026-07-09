@@ -6,9 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/login")({ component: Login });
+type LoginSearch = { redirect?: string };
+
+function getInternalRedirect(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return undefined;
+  return value;
+}
+
+export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>): LoginSearch => ({
+    redirect: getInternalRedirect(search.redirect),
+  }),
+  component: Login,
+});
 
 function Login() {
+  const { redirect } = Route.useSearch();
+  const redirectTo = redirect ?? "/dashboard";
   const { user, signIn, signUp, loading } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -17,8 +32,8 @@ function Login() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/dashboard" });
-  }, [loading, user, navigate]);
+    if (!loading && user) navigate({ to: redirectTo });
+  }, [loading, user, navigate, redirectTo]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +43,10 @@ function Login() {
         await signIn(email, password);
         toast.success("Welcome back", { description: `Signed in as ${email}` });
       } else {
-        await signUp(email, password);
+        await signUp(email, password, redirectTo);
         toast.success("Account created", { description: "You're all set — welcome to QuoteFlow." });
       }
-      navigate({ to: "/dashboard" });
+      navigate({ to: redirectTo });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Authentication failed";
       toast.error(mode === "signin" ? "Sign in failed" : "Sign up failed", { description: msg });
