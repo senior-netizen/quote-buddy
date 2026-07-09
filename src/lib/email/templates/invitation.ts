@@ -3,7 +3,7 @@ export type InvitationEmailTemplateInput = {
   token: string;
   organizationName: string;
   inviterNameOrEmail: string;
-  expiresAt: Date | string;
+  expiresAt?: Date | string | null;
 };
 
 export type EmailTemplate = {
@@ -21,7 +21,11 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function formatExpirationDate(value: Date | string): string {
+function formatExpirationDate(value: Date | string | null | undefined): string {
+  if (!value) {
+    return "the invitation expiration date";
+  }
+
   const date = typeof value === "string" ? new Date(value) : value;
 
   if (Number.isNaN(date.getTime())) {
