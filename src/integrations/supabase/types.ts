@@ -264,6 +264,57 @@ export type Database = {
           },
         ]
       }
+      fiscal_day_counters: {
+        Row: {
+          counter_type: string
+          counter_value: number
+          created_at: string
+          device_id: string
+          document_id: string
+          fiscal_day_no: number
+          id: string
+          org_id: string
+          receipt_type: string | null
+        }
+        Insert: {
+          counter_type: string
+          counter_value: number
+          created_at?: string
+          device_id: string
+          document_id: string
+          fiscal_day_no: number
+          id?: string
+          org_id: string
+          receipt_type?: string | null
+        }
+        Update: {
+          counter_type?: string
+          counter_value?: number
+          created_at?: string
+          device_id?: string
+          document_id?: string
+          fiscal_day_no?: number
+          id?: string
+          org_id?: string
+          receipt_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_day_counters_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_day_counters_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_fiscal_config: {
         Row: {
           activation_key: string | null
@@ -509,6 +560,69 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_history: {
+        Row: {
+          created_at: string
+          device_id: string
+          document_id: string
+          fiscal_day_no: number
+          id: string
+          invoice_no: string
+          org_id: string
+          receipt_counter: number
+          receipt_global_no: number
+          receipt_type: string
+          receipt_type_counter: number | null
+          status: string
+          submitted_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          document_id: string
+          fiscal_day_no: number
+          id?: string
+          invoice_no: string
+          org_id: string
+          receipt_counter: number
+          receipt_global_no: number
+          receipt_type: string
+          receipt_type_counter?: number | null
+          status?: string
+          submitted_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          document_id?: string
+          fiscal_day_no?: number
+          id?: string
+          invoice_no?: string
+          org_id?: string
+          receipt_counter?: number
+          receipt_global_no?: number
+          receipt_type?: string
+          receipt_type_counter?: number | null
+          status?: string
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_history_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           active_org_id: string | null
@@ -546,6 +660,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      allocate_fiscal_receipt_counters: {
+        Args: {
+          _document_id: string
+          _org_id: string
+          _receipt_type?: string
+          _requires_receipt_type_counter?: boolean
+        }
+        Returns: {
+          fiscal_day_no: number
+          invoice_no: string
+          receipt_counter: number
+          receipt_global_no: number
+          receipt_type_counter: number | null
+        }[]
+      }
       has_org_role: {
         Args: {
           _min_role: Database["public"]["Enums"]["app_role"]
