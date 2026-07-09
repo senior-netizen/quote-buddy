@@ -266,7 +266,7 @@ export async function sendOrganizationInvitationEmail(params: {
   token: string;
   organizationName: string;
   inviterNameOrEmail?: string | null;
-  expiresAt: Date | string;
+  expiresAt?: Date | string | null;
 }): Promise<void> {
   const appUrl = params.appUrl ?? getConfiguredAppOrigin();
   if (!appUrl) throw new Error("Application origin is not configured");
