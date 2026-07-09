@@ -7,9 +7,14 @@ function createSupabaseClient() {
   // Fall back to process.env for SSR (server-side rendering). Guard access to
   // process because it is not defined in browser runtimes.
   const serverEnv = typeof process !== 'undefined' ? process.env : undefined;
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || serverEnv?.SUPABASE_URL;
-  const SUPABASE_PUBLISHABLE_KEY =
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || serverEnv?.SUPABASE_PUBLISHABLE_KEY;
+  const readEnv = (...values: Array<string | undefined>) =>
+    values.find((value) => value && value.trim().length > 0);
+
+  const SUPABASE_URL = readEnv(import.meta.env.VITE_SUPABASE_URL, serverEnv?.SUPABASE_URL);
+  const SUPABASE_PUBLISHABLE_KEY = readEnv(
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    serverEnv?.SUPABASE_PUBLISHABLE_KEY
+  );
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     throw new Error(

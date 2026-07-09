@@ -4,14 +4,6 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "env": {
-    "DEPLOY_TARGET": "vercel",
-    "VITE_SUPABASE_URL": "",
-    "VITE_SUPABASE_PUBLISHABLE_KEY": "",
-    "SUPABASE_URL": "",
-    "SUPABASE_SERVICE_ROLE_KEY": "",
-    "SUPABASE_PUBLISHABLE_KEY": "",
-    "RESEND_API_KEY": "",
-    "APP_URL": "https://yourdomain.co.zw",
-    "EMAIL_FROM": "My Platform <noreply@yourdomain.co.zw>"
+    "DEPLOY_TARGET": "vercel"
   }
 }

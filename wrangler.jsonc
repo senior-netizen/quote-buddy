@@ -3,14 +3,7 @@
   "name": "tanstack-start-app",
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
-  // Browser/client build variables required by Vite.
-  "vars": {
-    "VITE_SUPABASE_URL": "",
-    "VITE_SUPABASE_PUBLISHABLE_KEY": "",
-    "SUPABASE_URL": "",
-    "SUPABASE_PUBLISHABLE_KEY": ""
-  },
-  // Server runtime secret required separately:
-  // wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+  "main": "@tanstack/react-start/server-entry"
+  // Configure deployment-specific values with `wrangler secret put` or your
+  // hosting provider dashboard instead of committing empty placeholders.
 }
