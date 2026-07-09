@@ -359,6 +359,16 @@ export const onboardFiscalDeviceSecrets = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+async function loadOrganizationCurrency(orgId: string): Promise<string> {
+  const { data, error } = await supabaseAdmin
+    .from("organization_profiles")
+    .select("currency")
+    .eq("org_id", orgId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data?.currency?.trim() || "USD").toUpperCase();
+}
+
 async function loadDevice(orgId: string): Promise<{
   env: FdmsEnv;
   device: FdmsDevice;
@@ -575,8 +585,9 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
       .maybeSingle();
     if (currentStatus?.status === "Accepted") throw new Error("Already submitted to ZIMRA");
 
-    const { env, device, row } = await loadDevice(orgId);
+    const { env, device } = await loadDevice(orgId);
     const allocation = await ReceiptCounterManager.allocateInvoiceCounters(orgId, doc.id);
+    const receiptCurrency = await loadOrganizationCurrency(orgId);
 
     const lineItems = (doc.line_items as unknown as LineItem[]) ?? [];
     const totals = computeTotals(lineItems, Number(doc.tax_rate), Number(doc.discount));
@@ -618,7 +629,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
     const { hashBase64, verificationCode } = await computeReceiptHash({
       deviceId: device.deviceId,
       receiptType: "FiscalInvoice",
-      receiptCurrency: (row.currency as string) ?? "USD",
+      receiptCurrency,
       receiptGlobalNo,
       receiptDate,
       receiptTotalCents: Math.round(totals.total * 100),
@@ -628,7 +639,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
 
     const receiptPayload = {
       receiptType: "FiscalInvoice",
-      receiptCurrency: "USD",
+      receiptCurrency,
       receiptCounter,
       receiptGlobalNo,
       invoiceNo: allocation.invoiceNo,
