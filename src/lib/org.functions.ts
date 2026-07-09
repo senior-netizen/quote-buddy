@@ -403,8 +403,9 @@ export const inviteMember = createServerFn({ method: "POST" })
       appUrl: appOrigin,
       token: inv.token,
       organizationName: org?.name ?? "your organization",
-      role: data.role,
-      inviteUrl: `${appOrigin.replace(/\/$/, "")}/invite/${encodeURIComponent(inv.token)}`,
+      inviterNameOrEmail:
+        inviterProfile?.display_name ?? (context.claims.email as string | undefined) ?? null,
+      expiresAt: inv.expires_at,
     });
 
     return { id: inv.id, token: inv.token, expires_at: inv.expires_at };
