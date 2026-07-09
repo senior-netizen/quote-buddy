@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { computeReceiptHash } from "@/lib/fiscal/receiptHash";
+import { FiscalCounterManager } from "@/lib/fiscalCounterManager";
 import {
   openDay as fdmsOpenDay,
   closeDay as fdmsCloseDay,
@@ -542,37 +543,13 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
     if (doc.fiscal_status === "submitted") throw new Error("Already submitted to ZIMRA");
 
     const { env, device, row } = await loadDevice(orgId);
-
-    const { data: openDay } = await supabaseAdmin
-      .from("fiscal_days")
-      .select("*")
-      .eq("org_id", orgId)
-      .eq("status", "open")
-      .maybeSingle();
-    if (!openDay) throw new Error("Open a fiscal day before fiscalising receipts");
+    const allocation = await FiscalCounterManager.allocateInvoiceCounters(orgId, doc.id);
 
     const lineItems = (doc.line_items as unknown as LineItem[]) ?? [];
-    const validator = new ReceiptValidator();
-    const totals = validator.validateReceiptReady({
-      orgId,
-      userId: context.userId,
-      clientId: doc.client_id,
-      docType: "invoice",
-      docNumber: doc.doc_number,
-      issueDate: doc.issue_date,
-      dueDate: doc.due_date,
-      lineItems,
-      taxRate: Number(doc.tax_rate),
-      discount: Number(doc.discount),
-      notes: doc.notes,
-      buyer: doc.client as { company_name: string; address: string | null; email: string | null; phone: string | null } | null,
-      payments: [{ moneyTypeCode: "Cash", amount: Number(doc.total) }],
-    });
-    const allocatedCounters = doc.receipt_global_no && doc.receipt_counter
-      ? { receiptGlobalNo: Number(doc.receipt_global_no), receiptCounter: Number(doc.receipt_counter) }
-      : await new FiscalCounterManager(supabaseAdmin).allocate(orgId);
-    const receiptGlobalNo = allocatedCounters.receiptGlobalNo;
-    const receiptCounter = allocatedCounters.receiptCounter;
+    const totals = computeTotals(lineItems, Number(doc.tax_rate), Number(doc.discount));
+    const receiptGlobalNo = allocation.receiptGlobalNo;
+    const receiptCounter = allocation.receiptCounter;
+    const fiscalDayNo = allocation.fiscalDayNo;
     const receiptDate = new Date().toISOString().slice(0, 19); // yyyy-MM-ddTHH:mm:ss
 
     // Last submitted receipt hash → previousReceiptHash chain
@@ -611,7 +588,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
       receiptCurrency: "USD",
       receiptCounter,
       receiptGlobalNo,
-      invoiceNo: doc.doc_number,
+      invoiceNo: allocation.invoiceNo,
       buyerData: doc.client
         ? {
             buyerRegisterName: (doc.client as { company_name: string }).company_name,
@@ -656,6 +633,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
     const submission = await fdmsSubmitReceipt(env, device, receiptPayload);
 
     if (!submission.ok) {
+      await FiscalCounterManager.markFailed(doc.id);
       await supabaseAdmin
         .from("documents")
         .update({
@@ -670,27 +648,31 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
 
     const qrUrl = `https://receipt.zimra.co.zw/${device.deviceId}/${receiptGlobalNo}/${verificationCode}`;
 
+    const submittedAt = new Date().toISOString();
+
     await supabaseAdmin
       .from("documents")
       .update({
         fiscal_status: "submitted",
-        fiscal_day_no: openDay.fiscal_day_no,
+        fiscal_day_no: fiscalDayNo,
         receipt_global_no: receiptGlobalNo,
         receipt_counter: receiptCounter,
         receipt_hash: hashBase64,
         verification_code: verificationCode,
         receipt_qr_url: qrUrl,
-        fiscal_submitted_at: new Date().toISOString(),
+        fiscal_submitted_at: submittedAt,
         fiscal_response: submission.data as unknown as Json,
         fiscal_error: null,
       })
       .eq("id", doc.id);
 
+    await FiscalCounterManager.markSubmitted(doc.id, submittedAt);
+
     return {
       receipt_global_no: receiptGlobalNo,
       receipt_counter: receiptCounter,
       verification_code: verificationCode,
-      fiscal_day_no: openDay.fiscal_day_no,
+      fiscal_day_no: fiscalDayNo,
     };
   });
 
