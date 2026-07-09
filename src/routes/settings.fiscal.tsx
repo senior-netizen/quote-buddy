@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   getFiscalConfig,
   updateFiscalConfig,
+  onboardFiscalDeviceSecrets,
   testDeviceConnection,
   openFiscalDay,
   closeFiscalDay,
@@ -40,6 +41,7 @@ function FiscalSettings() {
   const router = useRouter();
   const getConfig = useServerFn(getFiscalConfig);
   const updateConfig = useServerFn(updateFiscalConfig);
+  const onboardSecrets = useServerFn(onboardFiscalDeviceSecrets);
   const testConn = useServerFn(testDeviceConnection);
   const openDay = useServerFn(openFiscalDay);
   const closeDay = useServerFn(closeFiscalDay);
@@ -84,7 +86,7 @@ function FiscalSettings() {
       device_id: config.device_id ?? "",
       device_serial: config.device_serial ?? "",
       device_model: config.device_model ?? "",
-      activation_key: config.activation_key ?? "",
+      activation_key: "",
       tax_payer_name: config.tax_payer_name ?? "",
       tax_payer_tin: config.tax_payer_tin ?? "",
       vat_number: config.vat_number ?? "",
@@ -98,11 +100,18 @@ function FiscalSettings() {
 
   const save = useMutation({
     mutationFn: async () => {
-      // Only include PEMs if user typed something new
-      const payload: Partial<Form> = { ...form };
-      if (!payload.certificate_pem) delete payload.certificate_pem;
-      if (!payload.private_key_pem) delete payload.private_key_pem;
-      return await updateConfig({ data: payload });
+      const { activation_key, certificate_pem, private_key_pem, ...configPayload } = form;
+      const result = await updateConfig({ data: configPayload });
+      if (activation_key || certificate_pem || private_key_pem) {
+        await onboardSecrets({
+          data: {
+            ...(activation_key ? { activation_key } : {}),
+            ...(certificate_pem ? { certificate_pem } : {}),
+            ...(private_key_pem ? { private_key_pem } : {}),
+          },
+        });
+      }
+      return result;
     },
     onSuccess: () => {
       toast.success("Fiscal settings saved");

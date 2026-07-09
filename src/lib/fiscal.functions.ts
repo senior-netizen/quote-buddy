@@ -15,7 +15,7 @@ import {
   type FdmsEnv,
 } from "@/lib/fiscal/zimra.server";
 import type { LineItem } from "@/lib/calc";
-import { computeTotals } from "@/lib/calc";
+import { FiscalCounterManager, ReceiptValidator } from "@/lib/fiscal";
 
 type UserClient = SupabaseClient<Database>;
 
@@ -30,7 +30,6 @@ export type FiscalConfig = {
   device_id: string | null;
   device_serial: string | null;
   device_model: string | null;
-  activation_key: string | null;
   tax_payer_name: string | null;
   tax_payer_tin: string | null;
   vat_number: string | null;
@@ -65,6 +64,95 @@ async function ensureAdmin(supabase: UserClient, userId: string, orgId: string) 
   if (!data) throw new Error("Admin or owner role required");
 }
 
+
+const SECRET_FIELD_PATTERN = /(activation[_-]?key|private[_-]?key|certificate|cert(ificate)?[_-]?pem|secret|authorization|bearer|token)/i;
+
+function redactString(value: string): string {
+  return value
+    .replace(/-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g, "[REDACTED_PEM]")
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED]");
+}
+
+function redactSecrets<T>(value: T): T {
+  if (typeof value === "string") return redactString(value) as T;
+  if (Array.isArray(value)) return value.map((item) => redactSecrets(item)) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+        key,
+        SECRET_FIELD_PATTERN.test(key) ? "[REDACTED]" : redactSecrets(entry),
+      ]),
+    ) as T;
+  }
+  return value;
+}
+
+function redactFdmsError(error: { message: string; raw?: unknown }) {
+  return { ...error, message: redactString(error.message), raw: redactSecrets(error.raw) };
+}
+
+
+async function activeEncryptedPayload(orgId: string, table: "device_certificates" | "device_keys") {
+  const { data } = await (supabaseAdmin as any)
+    .from(table)
+    .select("encrypted_payload")
+    .eq("org_id", orgId)
+    .eq("active", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data?.encrypted_payload as string | null | undefined) ?? null;
+}
+
+function getFiscalSecretKey(): string | null {
+  const env = (globalThis as typeof globalThis & { process?: { env?: Record<string, string | undefined> } }).process?.env;
+  return env?.FISCAL_SECRET_ENCRYPTION_KEY ?? null;
+}
+
+async function importFiscalSecretKey() {
+  const secret = getFiscalSecretKey();
+  if (!secret) throw new Error("FISCAL_SECRET_ENCRYPTION_KEY is required for fiscal secret storage");
+  const bytes = Uint8Array.from(atob(secret), (char) => char.charCodeAt(0));
+  if (![16, 24, 32].includes(bytes.byteLength)) {
+    throw new Error("FISCAL_SECRET_ENCRYPTION_KEY must be base64-encoded AES key material");
+  }
+  return crypto.subtle.importKey("raw", bytes, "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+
+async function encryptFiscalSecret(plaintext: string): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await importFiscalSecretKey();
+  const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(plaintext));
+  return `aes-gcm:v1:${btoa(String.fromCharCode(...iv))}:${btoa(String.fromCharCode(...new Uint8Array(cipher)))}`;
+}
+
+async function decryptFiscalSecret(payload: string | null): Promise<string | null> {
+  if (!payload) return null;
+  const [, , ivB64, cipherB64] = payload.split(":");
+  if (!ivB64 || !cipherB64) throw new Error("Invalid encrypted fiscal secret payload");
+  const key = await importFiscalSecretKey();
+  const iv = Uint8Array.from(atob(ivB64), (char) => char.charCodeAt(0));
+  const cipher = Uint8Array.from(atob(cipherB64), (char) => char.charCodeAt(0));
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, cipher);
+  return new TextDecoder().decode(plain);
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function hasActiveFiscalSecret(orgId: string, table: "device_certificates" | "device_keys") {
+  const { data } = await (supabaseAdmin as any)
+    .from(table)
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("active", true)
+    .limit(1)
+    .maybeSingle();
+  return Boolean(data);
+}
+
 async function activeOrgId(supabase: UserClient, userId: string): Promise<string> {
   const { data } = await supabase
     .from("profiles")
@@ -76,7 +164,7 @@ async function activeOrgId(supabase: UserClient, userId: string): Promise<string
   return id;
 }
 
-function stripSecrets(row: Record<string, unknown>): FiscalConfig {
+function stripSecrets(row: Record<string, unknown>, secretState?: { hasCertificate: boolean; hasPrivateKey: boolean }): FiscalConfig {
   return {
     org_id: row.org_id as string,
     enabled: Boolean(row.enabled),
@@ -84,13 +172,12 @@ function stripSecrets(row: Record<string, unknown>): FiscalConfig {
     device_id: (row.device_id as string) ?? null,
     device_serial: (row.device_serial as string) ?? null,
     device_model: (row.device_model as string) ?? null,
-    activation_key: (row.activation_key as string) ?? null,
     tax_payer_name: (row.tax_payer_name as string) ?? null,
     tax_payer_tin: (row.tax_payer_tin as string) ?? null,
     vat_number: (row.vat_number as string) ?? null,
     trade_name: (row.trade_name as string) ?? null,
-    has_certificate: Boolean(row.certificate_pem),
-    has_private_key: Boolean(row.private_key_pem),
+    has_certificate: secretState?.hasCertificate ?? Boolean(row.certificate_secret_ref),
+    has_private_key: secretState?.hasPrivateKey ?? Boolean(row.private_key_secret_ref),
     device_operating_mode: (row.device_operating_mode as string) ?? "Online",
     last_fiscal_day_no: (row.last_fiscal_day_no as number) ?? null,
     last_receipt_global_no: Number(row.last_receipt_global_no ?? 0),
@@ -113,7 +200,10 @@ export const getFiscalConfig = createServerFn({ method: "GET" })
       .eq("org_id", orgId)
       .maybeSingle();
     if (!data) return null;
-    return stripSecrets(data as Record<string, unknown>);
+    return stripSecrets(data as Record<string, unknown>, {
+      hasCertificate: await hasActiveFiscalSecret(orgId, "device_certificates"),
+      hasPrivateKey: await hasActiveFiscalSecret(orgId, "device_keys"),
+    });
   });
 
 const updateSchema = z.object({
@@ -122,15 +212,15 @@ const updateSchema = z.object({
   device_id: z.string().nullable().optional(),
   device_serial: z.string().nullable().optional(),
   device_model: z.string().nullable().optional(),
-  activation_key: z.string().nullable().optional(),
+  activation_key_secret_ref: z.string().nullable().optional(),
   tax_payer_name: z.string().nullable().optional(),
   tax_payer_tin: z.string().nullable().optional(),
   vat_number: z.string().nullable().optional(),
   trade_name: z.string().nullable().optional(),
-  certificate_pem: z.string().nullable().optional(),
-  private_key_pem: z.string().nullable().optional(),
+  certificate_secret_ref: z.string().nullable().optional(),
+  private_key_secret_ref: z.string().nullable().optional(),
   device_operating_mode: z.string().optional(),
-});
+}).strict();
 
 export const updateFiscalConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -172,6 +262,85 @@ export const updateFiscalConfig = createServerFn({ method: "POST" })
     return stripSecrets(inserted as Record<string, unknown>);
   });
 
+
+const secureOnboardingSchema = z.object({
+  activation_key: z.string().min(1).optional(),
+  certificate_pem: z.string().min(1).optional(),
+  private_key_pem: z.string().min(1).optional(),
+  key_id: z.string().min(1).default("server-managed"),
+  valid_from: z.string().datetime().nullable().optional(),
+  valid_until: z.string().datetime().nullable().optional(),
+}).strict();
+
+/** Dedicated server-side onboarding flow for encrypting and storing fiscal secrets. */
+export const onboardFiscalDeviceSecrets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => secureOnboardingSchema.parse(data))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const orgId = await activeOrgId(context.supabase, context.userId);
+    await ensureAdmin(context.supabase, context.userId, orgId);
+
+    const now = new Date().toISOString();
+    const validFrom = data.valid_from ?? now;
+
+    if (data.activation_key) {
+      await supabaseAdmin
+        .from("organization_fiscal_config")
+        .update({
+          activation_key_encrypted: await encryptFiscalSecret(data.activation_key),
+          activation_key_id: data.key_id,
+          activation_key_secret_ref: `organization_fiscal_config:${orgId}:activation_key_encrypted`,
+        } as never)
+        .eq("org_id", orgId);
+    }
+
+    if (data.certificate_pem) {
+      await (supabaseAdmin as any).from("device_certificates").update({ active: false }).eq("org_id", orgId);
+      const { data: certRow, error } = await (supabaseAdmin as any)
+        .from("device_certificates")
+        .insert({
+          org_id: orgId,
+          encrypted_payload: await encryptFiscalSecret(data.certificate_pem),
+          key_id: data.key_id,
+          thumbprint: await sha256Hex(data.certificate_pem),
+          active: true,
+          valid_from: validFrom,
+          valid_until: data.valid_until ?? null,
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      await supabaseAdmin
+        .from("organization_fiscal_config")
+        .update({ certificate_secret_ref: `device_certificates:${certRow.id}` } as never)
+        .eq("org_id", orgId);
+    }
+
+    if (data.private_key_pem) {
+      await (supabaseAdmin as any).from("device_keys").update({ active: false }).eq("org_id", orgId);
+      const { data: keyRow, error } = await (supabaseAdmin as any)
+        .from("device_keys")
+        .insert({
+          org_id: orgId,
+          encrypted_payload: await encryptFiscalSecret(data.private_key_pem),
+          key_id: data.key_id,
+          thumbprint: await sha256Hex(data.private_key_pem),
+          active: true,
+          valid_from: validFrom,
+          valid_until: data.valid_until ?? null,
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      await supabaseAdmin
+        .from("organization_fiscal_config")
+        .update({ private_key_secret_ref: `device_keys:${keyRow.id}` } as never)
+        .eq("org_id", orgId);
+    }
+
+    return { ok: true };
+  });
+
 async function loadDevice(orgId: string): Promise<{
   env: FdmsEnv;
   device: FdmsDevice;
@@ -183,6 +352,7 @@ async function loadDevice(orgId: string): Promise<{
     .eq("org_id", orgId)
     .maybeSingle();
   if (!data) throw new Error("Fiscal config not found");
+  const configRow = data as Record<string, unknown>;
   if (!data.enabled) throw new Error("Fiscalisation is disabled for this organization");
   if (!data.device_id) throw new Error("Device ID is not configured");
   return {
@@ -190,9 +360,9 @@ async function loadDevice(orgId: string): Promise<{
     device: {
       deviceId: String(data.device_id),
       deviceSerialNo: (data.device_serial as string) ?? null,
-      activationKey: (data.activation_key as string) ?? null,
-      certificatePem: (data.certificate_pem as string) ?? null,
-      privateKeyPem: (data.private_key_pem as string) ?? null,
+      activationKey: await decryptFiscalSecret((configRow.activation_key_encrypted as string | null) ?? null),
+      certificatePem: await decryptFiscalSecret(await activeEncryptedPayload(orgId, "device_certificates")),
+      privateKeyPem: await decryptFiscalSecret(await activeEncryptedPayload(orgId, "device_keys")),
     },
     row: data as Record<string, unknown>,
   };
@@ -207,7 +377,7 @@ export const testDeviceConnection = createServerFn({ method: "POST" })
     const { env, device } = await loadDevice(orgId);
     try {
       const res = await getDeviceConfig(env, device);
-      if (!res.ok) return { ok: false, message: res.error.message };
+      if (!res.ok) return { ok: false, message: redactFdmsError(res.error).message };
       return { ok: true, message: "Device reachable", data: res.data as unknown as Json };
     } catch (e) {
       return { ok: false, message: e instanceof Error ? e.message : "Network error" };
@@ -244,7 +414,7 @@ export const openFiscalDay = createServerFn({ method: "POST" })
         fiscal_day_no: nextDayNo,
         opened_at: openedAt,
         status,
-        opening_response: res.ok ? (res.data as unknown as Json) : ({ error: res.error } as unknown as Json),
+        opening_response: res.ok ? (res.data as unknown as Json) : ({ error: redactFdmsError(res.error) } as unknown as Json),
       })
       .select("*")
       .single();
@@ -256,7 +426,7 @@ export const openFiscalDay = createServerFn({ method: "POST" })
         .update({ last_fiscal_day_no: nextDayNo, last_receipt_counter: 0 })
         .eq("org_id", orgId);
     } else {
-      throw new Error(`FDMS OpenDay failed: ${res.error.message}`);
+      throw new Error(`FDMS OpenDay failed: ${redactFdmsError(res.error).message}`);
     }
 
     return {
@@ -301,9 +471,9 @@ export const closeFiscalDay = createServerFn({ method: "POST" })
     if (!res.ok) {
       await supabaseAdmin
         .from("fiscal_days")
-        .update({ status: "error", closing_response: { error: res.error.message } as unknown as Json })
+        .update({ status: "error", closing_response: { error: redactFdmsError(res.error).message } as unknown as Json })
         .eq("id", openRow.id);
-      throw new Error(`FDMS CloseDay failed: ${res.error.message}`);
+      throw new Error(`FDMS CloseDay failed: ${redactFdmsError(res.error).message}`);
     }
 
     const { data: updated, error } = await supabaseAdmin
@@ -468,12 +638,12 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
         .from("documents")
         .update({
           fiscal_status: "failed",
-          fiscal_error: submission.error.message,
-          fiscal_response: (submission.error.raw ?? null) as unknown as Json,
+          fiscal_error: redactFdmsError(submission.error).message,
+          fiscal_response: (redactFdmsError(submission.error).raw ?? null) as unknown as Json,
           fiscal_submitted_at: new Date().toISOString(),
         })
         .eq("id", doc.id);
-      throw new Error(`FDMS SubmitReceipt failed: ${submission.error.message}`);
+      throw new Error(`FDMS SubmitReceipt failed: ${redactFdmsError(submission.error).message}`);
     }
 
     const qrUrl = `https://receipt.zimra.co.zw/${device.deviceId}/${receiptGlobalNo}/${verificationCode}`;
