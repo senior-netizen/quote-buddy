@@ -324,6 +324,11 @@ function randomToken(): string {
   return randomBytes(32).toString("hex");
 }
 
+function isUniqueConstraintError(error: { code?: string | null; status?: number } | null): boolean {
+  // PostgreSQL unique_violation. Supabase/PostgREST usually exposes this as `code`.
+  return error?.code === "23505" || error?.status === 409;
+}
+
 export const verifyEmailConfiguration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ org_id: z.string().uuid() }).parse(d))
@@ -585,12 +590,13 @@ export const acceptInvitation = createServerFn({ method: "POST" })
       throw new Error(`This invitation is for ${inv.email}. Sign in with that email to accept.`);
     }
 
-    // Add membership (ignore unique-violation if already member)
+    // Add membership. A unique-constraint conflict means the user is already a member,
+    // so it is safe to continue; any other insert failure must stop acceptance.
     const { error: insErr } = await supabaseAdmin
       .from("organization_members")
       .insert({ org_id: inv.org_id, user_id: context.userId, role: inv.role });
-    if (insErr && !insErr.message.includes("duplicate")) {
-      // best-effort; continue regardless
+    if (insErr && !isUniqueConstraintError(insErr)) {
+      throw new Error(`Failed to add organization membership: ${insErr.message}`);
     }
 
     // Mark invitation accepted
