@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { ClientFormDialog } from "@/routes/clients";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Trash2, Plus } from "lucide-react";
 import { computeTotals, formatMoney, rowTotal, type LineItem } from "@/lib/calc";
-import { generateDocNumber } from "@/lib/docNumber";
+import { createDocument, getNextDocumentNumber, listDocumentClients } from "@/lib/documents.functions";
 import { useActiveOrg, profileToBrand } from "@/lib/org";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
 import { toast } from "sonner";
@@ -43,6 +43,9 @@ function plusDaysISO(days: number) {
 
 function Creator() {
   const navigate = useNavigate();
+  const createDocumentFn = useServerFn(createDocument);
+  const getNextDocumentNumberFn = useServerFn(getNextDocumentNumber);
+  const listDocumentClientsFn = useServerFn(listDocumentClients);
   const { data: activeOrg } = useActiveOrg();
   const [docType, setDocType] = useState<"quote" | "invoice">("quote");
   const [docNumber, setDocNumber] = useState("");
@@ -62,20 +65,13 @@ function Creator() {
 
   const { data: clients = [], refetch: refetchClients } = useQuery({
     queryKey: ["clients"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("id, company_name, address, email, phone")
-        .order("company_name");
-      if (error) throw error;
-      return data as ClientRow[];
-    },
+    queryFn: async () => (await listDocumentClientsFn()) as ClientRow[],
   });
 
   useEffect(() => {
     if (!activeOrg?.org_id) return;
-    generateDocNumber(docType, activeOrg.org_id).then(setDocNumber).catch(() => setDocNumber(""));
-  }, [docType, activeOrg?.org_id]);
+    getNextDocumentNumberFn({ data: { docType } }).then(setDocNumber).catch(() => setDocNumber(""));
+  }, [docType, activeOrg?.org_id, getNextDocumentNumberFn]);
 
   const totals = useMemo(() => computeTotals(items, taxRate, discount), [items, taxRate, discount]);
   const client = clients.find((c) => c.id === clientId) ?? null;
@@ -121,50 +117,20 @@ function Creator() {
     mutationFn: async () => {
       const err = validate();
       if (err) throw new Error(err);
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) throw new Error("Not authenticated");
       if (!activeOrg?.org_id) throw new Error("No active org");
-
-      const MAX_ATTEMPTS = 5;
-      let attemptNumber = docNumber;
-      let regenerated = false;
-
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        const { data, error } = await supabase
-          .from("documents")
-          .insert({
-            user_id: u.user.id,
-            org_id: activeOrg.org_id,
-            client_id: clientId,
-            doc_type: docType,
-            doc_number: attemptNumber,
-            issue_date: issueDate,
-            due_date: dueDate || null,
-            line_items: items as unknown as never,
-            tax_rate: taxRate,
-            discount,
-            subtotal: totals.subtotal,
-            tax_amount: totals.tax_amount,
-            total: totals.total,
-            notes: notes || null,
-          })
-          .select("id")
-          .single();
-
-        if (!error) {
-          if (attemptNumber !== docNumber) setDocNumber(attemptNumber);
-          if (regenerated) toast.message(`Document number reassigned to ${attemptNumber}`);
-          return data.id as string;
-        }
-
-        if ((error as { code?: string }).code === "23505" && attempt < MAX_ATTEMPTS) {
-          attemptNumber = await generateDocNumber(docType, activeOrg.org_id);
-          regenerated = true;
-          continue;
-        }
-        throw error;
-      }
-      throw new Error("Could not allocate a unique document number. Please try again.");
+      return await createDocumentFn({
+        data: {
+          clientId,
+          docType,
+          docNumber,
+          issueDate,
+          dueDate: dueDate || null,
+          lineItems: items,
+          taxRate,
+          discount,
+          notes: notes || null,
+        },
+      });
     },
     onSuccess: async (id) => {
       toast.success("Document saved");

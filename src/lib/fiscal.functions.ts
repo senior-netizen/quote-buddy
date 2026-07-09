@@ -14,7 +14,7 @@ import {
   type FdmsEnv,
 } from "@/lib/fiscal/zimra.server";
 import type { LineItem } from "@/lib/calc";
-import { computeTotals } from "@/lib/calc";
+import { FiscalCounterManager, ReceiptValidator } from "@/lib/fiscal";
 
 type UserClient = SupabaseClient<Database>;
 
@@ -382,9 +382,27 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
     if (!openDay) throw new Error("Open a fiscal day before fiscalising receipts");
 
     const lineItems = (doc.line_items as unknown as LineItem[]) ?? [];
-    const totals = computeTotals(lineItems, Number(doc.tax_rate), Number(doc.discount));
-    const receiptGlobalNo = Number(row.last_receipt_global_no ?? 0) + 1;
-    const receiptCounter = Number(row.last_receipt_counter ?? 0) + 1;
+    const validator = new ReceiptValidator();
+    const totals = validator.validateReceiptReady({
+      orgId,
+      userId: context.userId,
+      clientId: doc.client_id,
+      docType: "invoice",
+      docNumber: doc.doc_number,
+      issueDate: doc.issue_date,
+      dueDate: doc.due_date,
+      lineItems,
+      taxRate: Number(doc.tax_rate),
+      discount: Number(doc.discount),
+      notes: doc.notes,
+      buyer: doc.client as { company_name: string; address: string | null; email: string | null; phone: string | null } | null,
+      payments: [{ moneyTypeCode: "Cash", amount: Number(doc.total) }],
+    });
+    const allocatedCounters = doc.receipt_global_no && doc.receipt_counter
+      ? { receiptGlobalNo: Number(doc.receipt_global_no), receiptCounter: Number(doc.receipt_counter) }
+      : await new FiscalCounterManager(supabaseAdmin).allocate(orgId);
+    const receiptGlobalNo = allocatedCounters.receiptGlobalNo;
+    const receiptCounter = allocatedCounters.receiptCounter;
     const receiptDate = new Date().toISOString().slice(0, 19); // yyyy-MM-ddTHH:mm:ss
 
     // Last submitted receipt hash → previousReceiptHash chain
@@ -497,14 +515,6 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
         fiscal_error: null,
       })
       .eq("id", doc.id);
-
-    await supabaseAdmin
-      .from("organization_fiscal_config")
-      .update({
-        last_receipt_global_no: receiptGlobalNo,
-        last_receipt_counter: receiptCounter,
-      })
-      .eq("org_id", orgId);
 
     return {
       receipt_global_no: receiptGlobalNo,
