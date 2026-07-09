@@ -385,11 +385,18 @@ export const inviteMember = createServerFn({ method: "POST" })
       .select("name")
       .eq("id", data.org_id)
       .maybeSingle();
+    const { data: inviterProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", context.userId)
+      .maybeSingle();
     const appOrigin = process.env.APP_ORIGIN ?? process.env.PUBLIC_APP_ORIGIN;
     if (!appOrigin) throw new Error("Application origin is not configured");
 
     await sendOrganizationInvitationEmail({
       email: data.email.toLowerCase(),
+      appUrl: appOrigin,
+      token: inv.token,
       organizationName: org?.name ?? "your organization",
       role: data.role,
       inviteUrl: `${appOrigin.replace(/\/$/, "")}/invite/${encodeURIComponent(inv.token)}`,
