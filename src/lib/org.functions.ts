@@ -392,7 +392,7 @@ export const inviteMember = createServerFn({ method: "POST" })
       email: data.email.toLowerCase(),
       organizationName: org?.name ?? "your organization",
       role: data.role,
-      inviteUrl: `${appOrigin.replace(/\/$/, "")}/invite/${inv.token}`,
+      inviteUrl: `${appOrigin.replace(/\/$/, "")}/invite/${encodeURIComponent(inv.token)}`,
     });
 
     return { id: inv.id, token: inv.token, expires_at: inv.expires_at };

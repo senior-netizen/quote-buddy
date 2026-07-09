@@ -234,7 +234,7 @@ function Team() {
               </thead>
               <tbody>
                 {(invites.data ?? []).map((i) => {
-                  const link = `${window.location.origin}/invite/${i.token}`;
+                  const link = `${window.location.origin}/invite/${encodeURIComponent(i.token)}`;
                   return (
                     <tr key={i.id} className="border-b border-hairline last:border-0">
                       <td className="px-4 py-2.5">{i.email}</td>
