@@ -40,7 +40,7 @@ export class ReceiptEngine {
   private async loadFiscalConfig(orgId: string): Promise<FiscalConfigRow | null> {
     const { data, error } = await this.supabase
       .from("organization_fiscal_config")
-      .select("org_id, enabled, currency, last_receipt_counter, last_receipt_global_no")
+      .select("org_id, enabled, last_receipt_counter, last_receipt_global_no")
       .eq("org_id", orgId)
       .maybeSingle();
     if (error) throw new Error(error.message);

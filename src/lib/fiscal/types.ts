@@ -29,7 +29,6 @@ export type ReceiptDraft = {
 export type FiscalConfigRow = {
   org_id: string;
   enabled: boolean;
-  currency?: string | null;
   last_receipt_counter: number;
   last_receipt_global_no: number;
 };
