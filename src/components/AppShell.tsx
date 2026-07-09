@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   // Onboarding gate: user has no organization yet
-  if (!orgLoading && !activeOrg) {
+  if (!orgLoading && activeOrg === null) {
     return <OnboardingScreen />;
   }
 
@@ -281,6 +281,18 @@ function OrgSwitcher() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function OrganizationErrorScreen({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center px-6">
+      <div className="w-full max-w-sm text-center">
+        <Building2 className="mx-auto h-8 w-8 text-muted-foreground" />
+        <h1 className="mt-6 text-2xl font-semibold tracking-tight">Could not load your organization</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+      </div>
+    </div>
   );
 }
 

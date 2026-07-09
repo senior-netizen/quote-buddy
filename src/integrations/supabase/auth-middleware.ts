@@ -10,11 +10,12 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
   async ({ next }) => {
     
     const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+    const SUPABASE_AUTH_KEY =
+      process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_AUTH_KEY) {
       throw new Response(
-        'Missing Supabase environment variables. Ensure SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY are set.',
+        'Missing Supabase server environment variables. Ensure SUPABASE_URL and either SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_PUBLISHABLE_KEY are set for the server runtime.',
         { status: 500 }
       );
     }
@@ -42,7 +43,7 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
 
     const supabase = createClient<Database>(
       SUPABASE_URL!,
-      SUPABASE_PUBLISHABLE_KEY!,
+      SUPABASE_AUTH_KEY!,
       {
         global: {
           headers: {
