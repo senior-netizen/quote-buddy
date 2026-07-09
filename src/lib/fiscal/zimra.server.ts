@@ -32,6 +32,49 @@ export type FdmsDevice = {
   privateKeyPem: string | null;
 };
 
+export type FdmsTaxpayerVerificationRequest = {
+  taxpayerTin: string;
+  vatNumber?: string | null;
+};
+
+export type FdmsTaxpayerVerificationResponse = {
+  taxpayerTin?: string;
+  taxpayerName?: string;
+  vatNumber?: string;
+  tradeName?: string;
+  isValid?: boolean;
+} & Record<string, unknown>;
+
+export type FdmsDeviceRegistrationRequest = {
+  taxpayerTin: string;
+  vatNumber?: string | null;
+  deviceSerialNo: string;
+  deviceModelName?: string;
+  deviceModelVersion?: string;
+  deviceBranchName?: string | null;
+};
+
+export type FdmsDeviceRegistrationResponse = {
+  deviceId?: string | number;
+  deviceSerialNo?: string;
+  activationKey?: string;
+} & Record<string, unknown>;
+
+export type FdmsCertificateIssueRequest = {
+  deviceId: string;
+  activationKey: string;
+  csr: string;
+};
+
+export type FdmsCertificateIssueResponse = {
+  certificatePem?: string;
+  certificate?: string;
+  serialNumber?: string;
+  thumbprint?: string;
+  validFrom?: string;
+  validTo?: string;
+} & Record<string, unknown>;
+
 export type FdmsError = {
   status: number;
   code?: string;
@@ -66,6 +109,24 @@ async function fdmsFetch(
   return await fetch(url, { ...init, headers });
 }
 
+async function fdmsActivationFetch(
+  env: FdmsEnv,
+  path: string,
+  init: RequestInit,
+  activationKey?: string | null,
+): Promise<Response> {
+  const url = `${baseUrl(env)}${path}`;
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", "application/json");
+  headers.set("Accept", "application/json");
+  headers.set("DeviceModelName", "Server");
+  headers.set("DeviceModelVersion", "v1");
+  if (activationKey) {
+    headers.set("Authorization", `Bearer ${activationKey}`);
+  }
+  return await fetch(url, { ...init, headers });
+}
+
 async function parse<T>(res: Response): Promise<FdmsResult<T>> {
   const text = await res.text();
   let body: unknown = undefined;
@@ -93,6 +154,35 @@ async function parse<T>(res: Response): Promise<FdmsResult<T>> {
 export async function getDeviceConfig(env: FdmsEnv, device: FdmsDevice) {
   const res = await fdmsFetch(env, `/Device/v1/${device.deviceId}/GetConfig`, { method: "GET" }, device);
   return parse<Record<string, unknown>>(res);
+}
+
+/** POST /Taxpayer/v1/Verify — verifies a taxpayer TIN/VAT registration before device onboarding. */
+export async function verifyTaxpayer(env: FdmsEnv, payload: FdmsTaxpayerVerificationRequest) {
+  const res = await fdmsActivationFetch(env, "/Taxpayer/v1/Verify", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return parse<FdmsTaxpayerVerificationResponse>(res);
+}
+
+/** POST /Device/v1/Register — registers a fiscal device and returns its FDMS device id/activation key. */
+export async function registerDevice(env: FdmsEnv, payload: FdmsDeviceRegistrationRequest) {
+  const res = await fdmsActivationFetch(env, "/Device/v1/Register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return parse<FdmsDeviceRegistrationResponse>(res);
+}
+
+/** POST /Device/v1/{deviceID}/IssueCertificate — exchanges a CSR for a device certificate. */
+export async function issueDeviceCertificate(env: FdmsEnv, payload: FdmsCertificateIssueRequest) {
+  const res = await fdmsActivationFetch(
+    env,
+    `/Device/v1/${payload.deviceId}/IssueCertificate`,
+    { method: "POST", body: JSON.stringify({ csr: payload.csr }) },
+    payload.activationKey,
+  );
+  return parse<FdmsCertificateIssueResponse>(res);
 }
 
 /** POST /Device/v1/{deviceID}/OpenDay — opens a fiscal day. */
