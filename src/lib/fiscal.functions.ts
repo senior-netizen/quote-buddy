@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { computeReceiptHash } from "@/lib/fiscal/receiptHash";
-import { FiscalCounterManager } from "@/lib/fiscalCounterManager";
+import { FiscalCounterManager as ReceiptCounterManager } from "@/lib/fiscalCounterManager";
 import {
   openDay as fdmsOpenDay,
   closeDay as fdmsCloseDay,
@@ -15,7 +15,6 @@ import {
   type FdmsEnv,
 } from "@/lib/fiscal/zimra.server";
 import type { LineItem } from "@/lib/calc";
-import { FiscalCounterManager, ReceiptValidator } from "@/lib/fiscal";
 
 type UserClient = SupabaseClient<Database>;
 
@@ -577,7 +576,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
     if (currentStatus?.status === "Accepted") throw new Error("Already submitted to ZIMRA");
 
     const { env, device, row } = await loadDevice(orgId);
-    const allocation = await FiscalCounterManager.allocateInvoiceCounters(orgId, doc.id);
+    const allocation = await ReceiptCounterManager.allocateInvoiceCounters(orgId, doc.id);
 
     const lineItems = (doc.line_items as unknown as LineItem[]) ?? [];
     const totals = computeTotals(lineItems, Number(doc.tax_rate), Number(doc.discount));
@@ -698,13 +697,14 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
     }
 
     const qrUrl = `https://receipt.zimra.co.zw/${device.deviceId}/${receiptGlobalNo}/${verificationCode}`;
+    const submittedAt = new Date().toISOString();
 
     await appendReceiptStatus(doc.id, orgId, "Accepted", "FDMS accepted receipt", submission.data as unknown as Json);
 
     await supabaseAdmin
       .from("documents")
       .update({
-        fiscal_day_no: openDay.fiscal_day_no,
+        fiscal_day_no: fiscalDayNo,
         receipt_global_no: receiptGlobalNo,
         receipt_counter: receiptCounter,
         receipt_hash: hashBase64,
@@ -716,7 +716,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
       })
       .eq("id", doc.id);
 
-    await FiscalCounterManager.markSubmitted(doc.id, submittedAt);
+    await ReceiptCounterManager.markSubmitted(doc.id, submittedAt);
 
     return {
       receipt_global_no: receiptGlobalNo,
