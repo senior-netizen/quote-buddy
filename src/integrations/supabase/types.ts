@@ -102,6 +102,100 @@ export type Database = {
           },
         ]
       }
+      device_certificates: {
+        Row: {
+          active: boolean
+          created_at: string
+          encrypted_payload: string
+          id: string
+          key_id: string
+          org_id: string
+          thumbprint: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          encrypted_payload: string
+          id?: string
+          key_id: string
+          org_id: string
+          thumbprint: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          encrypted_payload?: string
+          id?: string
+          key_id?: string
+          org_id?: string
+          thumbprint?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_certificates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_keys: {
+        Row: {
+          active: boolean
+          created_at: string
+          encrypted_payload: string
+          id: string
+          key_id: string
+          org_id: string
+          thumbprint: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          encrypted_payload: string
+          id?: string
+          key_id: string
+          org_id: string
+          thumbprint: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          encrypted_payload?: string
+          id?: string
+          key_id?: string
+          org_id?: string
+          thumbprint?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           client_id: string

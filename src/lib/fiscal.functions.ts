@@ -261,6 +261,9 @@ export const onboardFiscalDeviceSecrets = createServerFn({ method: "POST" })
     const orgId = await activeOrgId(context.supabase, context.userId);
     await ensureAdmin(context.supabase, context.userId, orgId);
 
+    await assertFiscalSecretStorageReady(data);
+    await ensureFiscalConfigRow(orgId);
+
     const now = new Date().toISOString();
     const validFrom = data.valid_from ?? now;
 

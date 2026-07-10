@@ -16,33 +16,113 @@ ALTER TABLE public.organization_fiscal_config
   DROP COLUMN IF EXISTS certificate_pem,
   DROP COLUMN IF EXISTS private_key_pem;
 
+-- Earlier fiscal migrations created device_keys/device_certificates as append-only
+-- device lifecycle tables. The application runtime now treats them as org-scoped
+-- encrypted secret slots, so explicitly reshape any existing tables instead of
+-- relying on CREATE TABLE IF NOT EXISTS no-ops. These rows must be updateable so
+-- onboardFiscalDeviceSecrets can deactivate old active secrets before inserting
+-- replacements.
+DROP TRIGGER IF EXISTS device_keys_immutable_update ON public.device_keys;
+DROP TRIGGER IF EXISTS device_keys_immutable_delete ON public.device_keys;
+DROP TRIGGER IF EXISTS device_certificates_immutable_update ON public.device_certificates;
+DROP TRIGGER IF EXISTS device_certificates_immutable_delete ON public.device_certificates;
+DROP TRIGGER IF EXISTS prevent_update_device_keys ON public.device_keys;
+DROP TRIGGER IF EXISTS prevent_delete_device_keys ON public.device_keys;
+DROP TRIGGER IF EXISTS prevent_update_device_certificates ON public.device_certificates;
+DROP TRIGGER IF EXISTS prevent_delete_device_certificates ON public.device_certificates;
+
 CREATE TABLE IF NOT EXISTS public.device_keys (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
-  encrypted_payload TEXT NOT NULL,
-  key_id TEXT NOT NULL,
-  thumbprint TEXT NOT NULL,
-  active BOOLEAN NOT NULL DEFAULT false,
-  valid_from TIMESTAMPTZ NOT NULL DEFAULT now(),
-  valid_until TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CHECK (valid_until IS NULL OR valid_until > valid_from)
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid()
 );
 
+ALTER TABLE public.device_keys
+  ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS encrypted_payload TEXT,
+  ADD COLUMN IF NOT EXISTS key_id TEXT,
+  ADD COLUMN IF NOT EXISTS thumbprint TEXT,
+  ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS valid_from TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS valid_until TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+UPDATE public.device_keys dk
+SET org_id = d.org_id
+FROM public.devices d
+WHERE dk.org_id IS NULL
+  AND dk.device_id = d.id;
+
+UPDATE public.device_keys
+SET encrypted_payload = COALESCE(encrypted_payload, encrypted_private_key_ref),
+    key_id = COALESCE(key_id, key_algorithm, 'legacy'),
+    thumbprint = COALESCE(thumbprint, csr_fingerprint, md5(COALESCE(public_key_pem, encrypted_private_key_ref, id::text))),
+    valid_from = COALESCE(created_at, valid_from, now())
+WHERE encrypted_payload IS NULL
+   OR key_id IS NULL
+   OR thumbprint IS NULL;
+
+ALTER TABLE public.device_keys
+  ALTER COLUMN org_id SET NOT NULL,
+  ALTER COLUMN encrypted_payload SET NOT NULL,
+  ALTER COLUMN key_id SET NOT NULL,
+  ALTER COLUMN thumbprint SET NOT NULL,
+  ALTER COLUMN device_id DROP NOT NULL,
+  ALTER COLUMN key_algorithm DROP NOT NULL,
+  ALTER COLUMN key_size DROP NOT NULL,
+  ALTER COLUMN public_key_pem DROP NOT NULL,
+  ALTER COLUMN encrypted_private_key_ref DROP NOT NULL,
+  ALTER COLUMN csr_pem DROP NOT NULL,
+  ALTER COLUMN csr_fingerprint DROP NOT NULL;
+
+ALTER TABLE public.device_keys
+  DROP CONSTRAINT IF EXISTS device_keys_valid_window_chk,
+  ADD CONSTRAINT device_keys_valid_window_chk CHECK (valid_until IS NULL OR valid_until > valid_from);
+
 CREATE TABLE IF NOT EXISTS public.device_certificates (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
-  encrypted_payload TEXT NOT NULL,
-  key_id TEXT NOT NULL,
-  thumbprint TEXT NOT NULL,
-  active BOOLEAN NOT NULL DEFAULT false,
-  valid_from TIMESTAMPTZ NOT NULL DEFAULT now(),
-  valid_until TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CHECK (valid_until IS NULL OR valid_until > valid_from)
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid()
 );
+
+ALTER TABLE public.device_certificates
+  ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS encrypted_payload TEXT,
+  ADD COLUMN IF NOT EXISTS key_id TEXT,
+  ADD COLUMN IF NOT EXISTS thumbprint TEXT,
+  ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS valid_from TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS valid_until TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+UPDATE public.device_certificates dc
+SET org_id = d.org_id
+FROM public.devices d
+WHERE dc.org_id IS NULL
+  AND dc.device_id = d.id;
+
+UPDATE public.device_certificates
+SET encrypted_payload = COALESCE(encrypted_payload, certificate_pem),
+    key_id = COALESCE(key_id, certificate_serial_number, 'legacy'),
+    thumbprint = COALESCE(thumbprint, certificate_thumbprint, md5(COALESCE(certificate_pem, id::text))),
+    valid_from = COALESCE(valid_from, created_at, now()),
+    valid_until = COALESCE(valid_until, valid_to)
+WHERE encrypted_payload IS NULL
+   OR key_id IS NULL
+   OR thumbprint IS NULL;
+
+ALTER TABLE public.device_certificates
+  ALTER COLUMN org_id SET NOT NULL,
+  ALTER COLUMN encrypted_payload SET NOT NULL,
+  ALTER COLUMN key_id SET NOT NULL,
+  ALTER COLUMN thumbprint SET NOT NULL,
+  ALTER COLUMN device_id DROP NOT NULL,
+  ALTER COLUMN fdms_device_id DROP NOT NULL,
+  ALTER COLUMN environment DROP NOT NULL,
+  ALTER COLUMN certificate_pem DROP NOT NULL,
+  ALTER COLUMN certificate_thumbprint DROP NOT NULL;
+
+ALTER TABLE public.device_certificates
+  DROP CONSTRAINT IF EXISTS device_certificates_valid_window_chk,
+  ADD CONSTRAINT device_certificates_valid_window_chk CHECK (valid_until IS NULL OR valid_until > valid_from);
 
 CREATE TABLE IF NOT EXISTS public.certificate_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
