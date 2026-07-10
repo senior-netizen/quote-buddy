@@ -102,6 +102,100 @@ export type Database = {
           },
         ]
       }
+      device_certificates: {
+        Row: {
+          active: boolean
+          created_at: string
+          encrypted_payload: string
+          id: string
+          key_id: string
+          org_id: string
+          thumbprint: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          encrypted_payload: string
+          id?: string
+          key_id: string
+          org_id: string
+          thumbprint: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          encrypted_payload?: string
+          id?: string
+          key_id?: string
+          org_id?: string
+          thumbprint?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_certificates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_keys: {
+        Row: {
+          active: boolean
+          created_at: string
+          encrypted_payload: string
+          id: string
+          key_id: string
+          org_id: string
+          thumbprint: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          encrypted_payload: string
+          id?: string
+          key_id: string
+          org_id: string
+          thumbprint: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          encrypted_payload?: string
+          id?: string
+          key_id?: string
+          org_id?: string
+          thumbprint?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           client_id: string
@@ -362,8 +456,10 @@ export type Database = {
       }
       organization_fiscal_config: {
         Row: {
-          activation_key: string | null
-          certificate_pem: string | null
+          activation_key_encrypted: string | null
+          activation_key_id: string | null
+          activation_key_secret_ref: string | null
+          certificate_secret_ref: string | null
           created_at: string
           device_id: string | null
           device_model: string | null
@@ -375,7 +471,7 @@ export type Database = {
           last_receipt_counter: number
           last_receipt_global_no: number
           org_id: string
-          private_key_pem: string | null
+          private_key_secret_ref: string | null
           tax_payer_name: string | null
           tax_payer_tin: string | null
           trade_name: string | null
@@ -383,8 +479,10 @@ export type Database = {
           vat_number: string | null
         }
         Insert: {
-          activation_key?: string | null
-          certificate_pem?: string | null
+          activation_key_encrypted?: string | null
+          activation_key_id?: string | null
+          activation_key_secret_ref?: string | null
+          certificate_secret_ref?: string | null
           created_at?: string
           device_id?: string | null
           device_model?: string | null
@@ -396,7 +494,7 @@ export type Database = {
           last_receipt_counter?: number
           last_receipt_global_no?: number
           org_id: string
-          private_key_pem?: string | null
+          private_key_secret_ref?: string | null
           tax_payer_name?: string | null
           tax_payer_tin?: string | null
           trade_name?: string | null
@@ -404,8 +502,10 @@ export type Database = {
           vat_number?: string | null
         }
         Update: {
-          activation_key?: string | null
-          certificate_pem?: string | null
+          activation_key_encrypted?: string | null
+          activation_key_id?: string | null
+          activation_key_secret_ref?: string | null
+          certificate_secret_ref?: string | null
           created_at?: string
           device_id?: string | null
           device_model?: string | null
@@ -417,7 +517,7 @@ export type Database = {
           last_receipt_counter?: number
           last_receipt_global_no?: number
           org_id?: string
-          private_key_pem?: string | null
+          private_key_secret_ref?: string | null
           tax_payer_name?: string | null
           tax_payer_tin?: string | null
           trade_name?: string | null
