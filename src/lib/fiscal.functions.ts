@@ -39,6 +39,48 @@ async function appendReceiptStatus(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Load the prior accepted receipt hash for the ZIMRA hash chain.
+ *
+ * ZIMRA starts a new previousReceiptHash chain for each fiscal day, so the
+ * first accepted receipt on a device's fiscal day intentionally receives an
+ * empty previous hash. The device filter prevents receipts from other active or
+ * historical devices in the same organization from being linked into this
+ * device's chain.
+ */
+async function loadPreviousReceiptHash(
+  orgId: string,
+  deviceId: string,
+  fiscalDayNo: number,
+): Promise<string> {
+  const { data: acceptedStatusesForHash, error: statusError } = await supabaseAdmin
+    .from("current_receipt_status")
+    .select("document_id")
+    .eq("org_id", orgId)
+    .eq("status", "Accepted");
+  if (statusError) throw new Error(statusError.message);
+
+  const acceptedIdsForHash = (acceptedStatusesForHash ?? [])
+    .map((r) => r.document_id)
+    .filter((documentId): documentId is string => Boolean(documentId));
+  if (!acceptedIdsForHash.length) return "";
+
+  const { data: prevRow, error: prevError } = await supabaseAdmin
+    .from("documents")
+    .select("receipt_hash")
+    .eq("org_id", orgId)
+    .eq("fiscal_device_id", deviceId)
+    .eq("fiscal_day_no", fiscalDayNo)
+    .in("id", acceptedIdsForHash)
+    .not("receipt_hash", "is", null)
+    .order("receipt_global_no", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (prevError) throw new Error(prevError.message);
+
+  return prevRow?.receipt_hash ?? "";
+}
+
 // ============================================================
 // Types
 // ============================================================
@@ -725,26 +767,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
     const fiscalDayNo = allocation.fiscalDayNo;
     const receiptDate = new Date().toISOString().slice(0, 19); // yyyy-MM-ddTHH:mm:ss
 
-    // Last accepted receipt hash → previousReceiptHash chain.
-    const { data: acceptedStatusesForHash } = await supabaseAdmin
-      .from("current_receipt_status")
-      .select("document_id")
-      .eq("org_id", orgId)
-      .eq("status", "Accepted");
-    const acceptedIdsForHash = (acceptedStatusesForHash ?? [])
-      .map((r) => r.document_id)
-      .filter((documentId): documentId is string => Boolean(documentId));
-    const { data: prevRow } = acceptedIdsForHash.length
-      ? await supabaseAdmin
-          .from("documents")
-          .select("receipt_hash")
-          .eq("org_id", orgId)
-          .in("id", acceptedIdsForHash)
-          .order("receipt_global_no", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-      : { data: null };
-    const previousReceiptHash = prevRow?.receipt_hash ?? "";
+    const previousReceiptHash = await loadPreviousReceiptHash(orgId, device.deviceId, fiscalDayNo);
 
     // Build tax line: single VAT rate for the whole invoice (matches app model).
     const taxConfig = resolveTaxConfig(deviceConfig, Number(doc.tax_rate));
@@ -834,6 +857,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
         .update({
           fiscal_error: submission.error.message,
           fiscal_response: (submission.error.raw ?? null) as unknown as Json,
+          fiscal_device_id: device.deviceId,
           fiscal_submitted_at: new Date().toISOString(),
         })
         .eq("id", doc.id);
@@ -849,6 +873,7 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
       .from("documents")
       .update({
         fiscal_day_no: fiscalDayNo,
+        fiscal_device_id: device.deviceId,
         receipt_global_no: receiptGlobalNo,
         receipt_counter: receiptCounter,
         receipt_hash: hashBase64,

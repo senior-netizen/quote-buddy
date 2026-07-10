@@ -208,6 +208,7 @@ export type Database = {
           fiscal_day_no: number | null
           fiscal_error: string | null
           fiscal_response: Json | null
+          fiscal_device_id: string | null
           fiscal_status: string
           fiscal_submitted_at: string | null
           id: string
@@ -238,6 +239,7 @@ export type Database = {
           fiscal_day_no?: number | null
           fiscal_error?: string | null
           fiscal_response?: Json | null
+          fiscal_device_id?: string | null
           fiscal_status?: string
           fiscal_submitted_at?: string | null
           id?: string
@@ -268,6 +270,7 @@ export type Database = {
           fiscal_day_no?: number | null
           fiscal_error?: string | null
           fiscal_response?: Json | null
+          fiscal_device_id?: string | null
           fiscal_status?: string
           fiscal_submitted_at?: string | null
           id?: string
