@@ -130,11 +130,35 @@ function getFiscalSecretKey(): string | null {
 async function importFiscalSecretKey() {
   const secret = getFiscalSecretKey();
   if (!secret) throw new Error("FISCAL_SECRET_ENCRYPTION_KEY is required for fiscal secret storage");
-  const bytes = Uint8Array.from(atob(secret), (char) => char.charCodeAt(0));
+
+  let bytes: Uint8Array;
+  try {
+    bytes = Uint8Array.from(atob(secret), (char) => char.charCodeAt(0));
+  } catch {
+    throw new Error("FISCAL_SECRET_ENCRYPTION_KEY must be base64-encoded AES key material");
+  }
+
   if (![16, 24, 32].includes(bytes.byteLength)) {
     throw new Error("FISCAL_SECRET_ENCRYPTION_KEY must be base64-encoded AES key material");
   }
   return crypto.subtle.importKey("raw", bytes, "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+
+type FiscalSecretInput = { activation_key?: string; certificate_pem?: string; private_key_pem?: string };
+
+function hasFiscalSecretInput(input: FiscalSecretInput) {
+  return Boolean(input.activation_key || input.certificate_pem || input.private_key_pem);
+}
+
+async function assertFiscalSecretStorageReady(input: FiscalSecretInput) {
+  if (hasFiscalSecretInput(input)) await importFiscalSecretKey();
+}
+
+async function ensureFiscalConfigRow(orgId: string) {
+  const { error } = await supabaseAdmin
+    .from("organization_fiscal_config")
+    .upsert({ org_id: orgId } as never, { onConflict: "org_id", ignoreDuplicates: true });
+  if (error) throw new Error(error.message);
 }
 
 async function encryptFiscalSecret(plaintext: string): Promise<string> {
@@ -297,6 +321,9 @@ export const onboardFiscalDeviceSecrets = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const orgId = await activeOrgId(context.supabase, context.userId);
     await ensureAdmin(context.supabase, context.userId, orgId);
+
+    await assertFiscalSecretStorageReady(data);
+    await ensureFiscalConfigRow(orgId);
 
     const now = new Date().toISOString();
     const validFrom = data.valid_from ?? now;
