@@ -101,7 +101,6 @@ function FiscalSettings() {
   const save = useMutation({
     mutationFn: async () => {
       const { activation_key, certificate_pem, private_key_pem, ...configPayload } = form;
-      const result = await updateConfig({ data: configPayload });
       if (activation_key || certificate_pem || private_key_pem) {
         await onboardSecrets({
           data: {
@@ -111,7 +110,7 @@ function FiscalSettings() {
           },
         });
       }
-      return result;
+      return updateConfig({ data: configPayload });
     },
     onSuccess: () => {
       toast.success("Fiscal settings saved");
