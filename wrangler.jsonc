@@ -3,7 +3,13 @@
   "name": "tanstack-start-app",
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry"
+  "main": "@tanstack/react-start/server-entry",
+  "mtls_certificates": [
+    {
+      "binding": "ZIMRA_FDMS_MTLS_CERT",
+      "certificate_id": "<ZIMRA_FDMS_MTLS_CERTIFICATE_ID>",
+    },
+  ],
   // Configure deployment-specific values with `wrangler secret put` or your
   // hosting provider dashboard instead of committing empty placeholders.
 }
