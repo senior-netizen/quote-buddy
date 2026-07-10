@@ -456,9 +456,11 @@ export type Database = {
       }
       organization_fiscal_config: {
         Row: {
+          activation_key: string | null
           activation_key_encrypted: string | null
           activation_key_id: string | null
           activation_key_secret_ref: string | null
+          certificate_pem: string | null
           certificate_secret_ref: string | null
           created_at: string
           device_id: string | null
@@ -471,6 +473,7 @@ export type Database = {
           last_receipt_counter: number
           last_receipt_global_no: number
           org_id: string
+          private_key_pem: string | null
           private_key_secret_ref: string | null
           tax_payer_name: string | null
           tax_payer_tin: string | null
@@ -479,9 +482,11 @@ export type Database = {
           vat_number: string | null
         }
         Insert: {
+          activation_key?: string | null
           activation_key_encrypted?: string | null
           activation_key_id?: string | null
           activation_key_secret_ref?: string | null
+          certificate_pem?: string | null
           certificate_secret_ref?: string | null
           created_at?: string
           device_id?: string | null
@@ -494,6 +499,7 @@ export type Database = {
           last_receipt_counter?: number
           last_receipt_global_no?: number
           org_id: string
+          private_key_pem?: string | null
           private_key_secret_ref?: string | null
           tax_payer_name?: string | null
           tax_payer_tin?: string | null
@@ -502,9 +508,11 @@ export type Database = {
           vat_number?: string | null
         }
         Update: {
+          activation_key?: string | null
           activation_key_encrypted?: string | null
           activation_key_id?: string | null
           activation_key_secret_ref?: string | null
+          certificate_pem?: string | null
           certificate_secret_ref?: string | null
           created_at?: string
           device_id?: string | null
@@ -517,6 +525,7 @@ export type Database = {
           last_receipt_counter?: number
           last_receipt_global_no?: number
           org_id?: string
+          private_key_pem?: string | null
           private_key_secret_ref?: string | null
           tax_payer_name?: string | null
           tax_payer_tin?: string | null
