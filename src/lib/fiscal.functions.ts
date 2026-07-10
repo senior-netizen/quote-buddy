@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { computeReceiptHash } from "@/lib/fiscal/receiptHash";
+import { decryptFiscalSecret, encryptFiscalSecret, sha256Hex } from "@/lib/fiscal/secretStorage";
 import { FiscalCounterManager as ReceiptCounterManager } from "@/lib/fiscalCounterManager";
 import {
   openDay as fdmsOpenDay,
@@ -120,44 +121,6 @@ async function activeEncryptedPayload(orgId: string, table: "device_certificates
     .limit(1)
     .maybeSingle();
   return (data?.encrypted_payload as string | null | undefined) ?? null;
-}
-
-function getFiscalSecretKey(): string | null {
-  const env = (globalThis as typeof globalThis & { process?: { env?: Record<string, string | undefined> } }).process?.env;
-  return env?.FISCAL_SECRET_ENCRYPTION_KEY ?? null;
-}
-
-async function importFiscalSecretKey() {
-  const secret = getFiscalSecretKey();
-  if (!secret) throw new Error("FISCAL_SECRET_ENCRYPTION_KEY is required for fiscal secret storage");
-  const bytes = Uint8Array.from(atob(secret), (char) => char.charCodeAt(0));
-  if (![16, 24, 32].includes(bytes.byteLength)) {
-    throw new Error("FISCAL_SECRET_ENCRYPTION_KEY must be base64-encoded AES key material");
-  }
-  return crypto.subtle.importKey("raw", bytes, "AES-GCM", false, ["encrypt", "decrypt"]);
-}
-
-async function encryptFiscalSecret(plaintext: string): Promise<string> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await importFiscalSecretKey();
-  const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(plaintext));
-  return `aes-gcm:v1:${btoa(String.fromCharCode(...iv))}:${btoa(String.fromCharCode(...new Uint8Array(cipher)))}`;
-}
-
-async function decryptFiscalSecret(payload: string | null): Promise<string | null> {
-  if (!payload) return null;
-  const [, , ivB64, cipherB64] = payload.split(":");
-  if (!ivB64 || !cipherB64) throw new Error("Invalid encrypted fiscal secret payload");
-  const key = await importFiscalSecretKey();
-  const iv = Uint8Array.from(atob(ivB64), (char) => char.charCodeAt(0));
-  const cipher = Uint8Array.from(atob(cipherB64), (char) => char.charCodeAt(0));
-  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, cipher);
-  return new TextDecoder().decode(plain);
-}
-
-async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 async function hasActiveFiscalSecret(orgId: string, table: "device_certificates" | "device_keys") {
@@ -320,7 +283,7 @@ export const onboardFiscalDeviceSecrets = createServerFn({ method: "POST" })
           org_id: orgId,
           encrypted_payload: await encryptFiscalSecret(data.certificate_pem),
           key_id: data.key_id,
-          thumbprint: await sha256Hex(data.certificate_pem),
+          thumbprint: sha256Hex(data.certificate_pem),
           active: true,
           valid_from: validFrom,
           valid_until: data.valid_until ?? null,
@@ -342,7 +305,7 @@ export const onboardFiscalDeviceSecrets = createServerFn({ method: "POST" })
           org_id: orgId,
           encrypted_payload: await encryptFiscalSecret(data.private_key_pem),
           key_id: data.key_id,
-          thumbprint: await sha256Hex(data.private_key_pem),
+          thumbprint: sha256Hex(data.private_key_pem),
           active: true,
           valid_from: validFrom,
           valid_until: data.valid_until ?? null,

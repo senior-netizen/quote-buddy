@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CertificateManager } from "@/lib/fiscal/CertificateManager";
+import { encryptFiscalSecret, sha256Hex } from "@/lib/fiscal/secretStorage";
 import { ConfigurationManager } from "@/lib/fiscal/ConfigurationManager";
 import { CsrGenerator } from "@/lib/fiscal/CsrGenerator";
 import {
@@ -56,6 +57,7 @@ export class FiscalDeviceService {
     if (!fdmsDeviceId || !activationKey) throw new Error("FDMS registration response did not include a device id and activation key");
 
     const deviceUuid = randomUUID();
+    const encryptedActivationKey = await encryptFiscalSecret(activationKey);
     const { error } = await supabaseAdmin.from("devices").insert({
       id: deviceUuid,
       org_id: input.orgId,
@@ -64,7 +66,10 @@ export class FiscalDeviceService {
       device_serial_no: input.deviceSerialNo,
       device_model_name: input.deviceModelName ?? "Server",
       device_model_version: input.deviceModelVersion ?? "v1",
-      activation_key: activationKey,
+      activation_key: null,
+      activation_key_encrypted: encryptedActivationKey,
+      activation_key_secret_ref: `devices:${deviceUuid}:activation_key_encrypted`,
+      activation_key_hash: sha256Hex(activationKey),
       taxpayer_tin: input.taxpayerTin,
       vat_number: input.vatNumber,
       registration_response: registration.data as never,
@@ -81,17 +86,22 @@ export class FiscalDeviceService {
     fdmsDeviceId: string;
     activationKey: string;
     commonName: string;
-    encryptedPrivateKeyRef: string;
+    encryptedPrivateKeyRef?: string;
   }) {
     const csr = this.csrGenerator.generate({ commonName: input.commonName, serialNumber: input.fdmsDeviceId });
 
+    const encryptedPrivateKey = await encryptFiscalSecret(csr.privateKeyPem);
     const { error: keyError } = await supabaseAdmin.from("device_keys").insert({
       org_id: input.orgId,
       device_id: input.deviceUuid,
       key_algorithm: csr.keyAlgorithm,
       key_size: csr.keySize,
       public_key_pem: csr.publicKeyPem,
-      encrypted_private_key_ref: input.encryptedPrivateKeyRef,
+      encrypted_private_key_ref: input.encryptedPrivateKeyRef ?? `device_keys:${input.deviceUuid}:${csr.csrFingerprint}:encrypted_payload`,
+      encrypted_payload: encryptedPrivateKey,
+      key_id: input.encryptedPrivateKeyRef ?? "server-managed",
+      thumbprint: sha256Hex(csr.privateKeyPem),
+      active: true,
       csr_pem: csr.csrPem,
       csr_fingerprint: csr.csrFingerprint,
     } as never);

@@ -7,7 +7,7 @@
  *
  * IMPORTANT — mTLS:
  * The FDMS API requires a client TLS certificate issued to the device
- * (`certificate_pem` + `private_key_pem` in `organization_fiscal_config`).
+ * (loaded through encrypted fiscal secret storage, never plaintext database columns).
  * On Cloudflare Workers, outbound mTLS is provided via the platform-level
  * `mtls_certificates` binding rather than runtime PEM. If the platform is
  * not configured for mTLS, requests will fail at the TLS handshake — the

@@ -1,5 +1,6 @@
 import { createHash, randomUUID, X509Certificate } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { encryptFiscalSecret } from "@/lib/fiscal/secretStorage";
 import type { FdmsEnv } from "@/lib/fiscal/zimra.server";
 
 export type StoredCertificate = {
@@ -34,7 +35,11 @@ export class CertificateManager {
         device_id: input.deviceUuid,
         fdms_device_id: input.fdmsDeviceId,
         environment: input.environment,
-        certificate_pem: input.certificatePem,
+        certificate_pem: null,
+        encrypted_payload: await encryptFiscalSecret(input.certificatePem),
+        key_id: "server-managed",
+        thumbprint: metadata.thumbprint,
+        active: true,
         certificate_serial_number: metadata.serialNumber,
         certificate_thumbprint: metadata.thumbprint,
         valid_from: metadata.validFrom,
