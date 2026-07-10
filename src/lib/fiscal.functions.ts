@@ -14,6 +14,7 @@ import {
   type FdmsDevice,
   type FdmsEnv,
 } from "@/lib/fiscal/zimra.server";
+import { computeTotals as calculateTotals } from "@/lib/calc";
 import type { LineItem } from "@/lib/calc";
 
 type UserClient = SupabaseClient<Database>;
@@ -201,6 +202,169 @@ function stripSecrets(row: Record<string, unknown>, secretState?: { hasCertifica
     last_receipt_global_no: Number(row.last_receipt_global_no ?? 0),
     last_receipt_counter: Number(row.last_receipt_counter ?? 0),
   };
+}
+
+
+type FdmsConfig = Record<string, unknown>;
+
+type FdmsTaxConfig = {
+  taxCode: string;
+  taxPercent: number;
+  taxID?: number;
+};
+
+type ReceiptPaymentPayload = { moneyTypeCode: string; paymentAmount: number };
+
+const DEFAULT_RECEIPT_TYPE = "FiscalInvoice";
+const DEFAULT_MONEY_TYPE_CODE = "Cash";
+const TAX_CONFIG_ARRAY_KEYS = ["taxes", "taxRates", "taxTable", "vatRates", "applicableTaxes", "taxConfigurations"];
+const MONEY_TYPE_ARRAY_KEYS = ["moneyTypes", "paymentTypes", "payments", "paymentMethods", "moneyTypeCodes"];
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function findConfigArray(config: FdmsConfig, keys: string[]): unknown[] {
+  for (const key of keys) {
+    const value = config[key];
+    if (Array.isArray(value)) return value;
+  }
+  for (const value of Object.values(config)) {
+    const record = asRecord(value);
+    if (!record) continue;
+    const found = findConfigArray(record, keys);
+    if (found.length) return found;
+  }
+  return [];
+}
+
+function firstString(record: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+  return null;
+}
+
+function firstNumber(record: Record<string, unknown>, keys: string[]): number | null {
+  for (const key of keys) {
+    const value = record[key];
+    const number = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+    if (Number.isFinite(number)) return number;
+  }
+  return null;
+}
+
+function configuredTaxes(config: FdmsConfig): FdmsTaxConfig[] {
+  return findConfigArray(config, TAX_CONFIG_ARRAY_KEYS)
+    .map(asRecord)
+    .filter((tax): tax is Record<string, unknown> => Boolean(tax))
+    .map((tax) => {
+      const taxCode = firstString(tax, ["taxCode", "code", "taxID", "taxId", "id"]);
+      const taxPercent = firstNumber(tax, ["taxPercent", "taxPercentage", "taxRate", "rate", "percent"]);
+      const taxID = firstNumber(tax, ["taxID", "taxId", "id"]);
+      return taxCode && taxPercent !== null ? { taxCode, taxPercent, taxID: taxID ?? undefined } : null;
+    })
+    .filter((tax): tax is FdmsTaxConfig => Boolean(tax));
+}
+
+function configuredMoneyTypeCodes(config: FdmsConfig): Set<string> {
+  return new Set(
+    findConfigArray(config, MONEY_TYPE_ARRAY_KEYS)
+      .map((entry) => {
+        if (typeof entry === "string") return entry;
+        const record = asRecord(entry);
+        return record ? firstString(record, ["moneyTypeCode", "code", "name", "id"]) : null;
+      })
+      .filter((code): code is string => Boolean(code)),
+  );
+}
+
+function resolveTaxConfig(config: FdmsConfig, taxRate: number): FdmsTaxConfig {
+  const tax = configuredTaxes(config).find((entry) => Math.round(entry.taxPercent * 100) === Math.round(taxRate * 100));
+  if (!tax) throw new Error(`Unsupported ZIMRA tax rate ${taxRate}%; refresh FDMS GetConfig or configure an allowed tax rate for this device`);
+  return tax;
+}
+
+function validateReceiptPayments(config: FdmsConfig, payments: ReceiptPaymentPayload[], receiptTotal: number) {
+  const allowedCodes = configuredMoneyTypeCodes(config);
+  if (allowedCodes.size) {
+    for (const payment of payments) {
+      if (!allowedCodes.has(payment.moneyTypeCode)) throw new Error(`Unsupported ZIMRA payment type ${payment.moneyTypeCode}`);
+    }
+  }
+  const paid = payments.reduce((sum, payment) => sum + Number(payment.paymentAmount || 0), 0);
+  if (Math.round(paid) !== Math.round(receiptTotal)) throw new Error("Receipt payments must equal the receipt total");
+}
+
+function validateReceiptLines(lines: Array<{ receiptLineNo: number; receiptLinePrice: number; receiptLineQuantity: number; receiptLineTotal: number }>, taxInclusive: boolean) {
+  if (taxInclusive !== false) throw new Error("Only tax-exclusive receipt lines are supported by this invoice model");
+  for (const line of lines) {
+    const expected = Math.round(Number(line.receiptLineQuantity) * Number(line.receiptLinePrice) * 100);
+    if (expected !== Math.round(Number(line.receiptLineTotal))) {
+      throw new Error(`Receipt line ${line.receiptLineNo} total does not match quantity × price`);
+    }
+  }
+}
+
+async function fetchAndStoreDeviceConfig(orgId: string, env: FdmsEnv, device: FdmsDevice): Promise<FdmsConfig> {
+  const result = await getDeviceConfig(env, device);
+  if (!result.ok) throw new Error(`FDMS GetConfig failed: ${redactFdmsError(result.error).message}`);
+  await (supabaseAdmin as any).from("device_configuration").insert({
+    org_id: orgId,
+    device_id: orgId,
+    fdms_device_id: device.deviceId,
+    environment: env,
+    source: "fdms",
+    configuration: result.data as never,
+  });
+  return result.data as FdmsConfig;
+}
+
+async function latestDeviceConfig(orgId: string, env: FdmsEnv, device: FdmsDevice): Promise<FdmsConfig> {
+  const { data, error } = await (supabaseAdmin as any)
+    .from("device_configuration")
+    .select("configuration")
+    .eq("org_id", orgId)
+    .eq("fdms_device_id", device.deviceId)
+    .eq("environment", env)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data?.configuration as FdmsConfig | null) ?? fetchAndStoreDeviceConfig(orgId, env, device);
+}
+
+type FiscalDayCounter = {
+  receiptType: string;
+  receiptCurrency: string;
+  taxCode?: string;
+  taxPercent?: number;
+  moneyTypeCode?: string;
+  receiptQuantity?: number;
+  receiptTotalAmount?: number;
+  taxAmount?: number;
+  paymentAmount?: number;
+};
+
+function buildFiscalDayCounters(receipts: Array<{ total: unknown; tax_amount: unknown; tax_rate: unknown; line_items: unknown; discount: unknown }>, receiptCurrency: string, config: FdmsConfig) {
+  const counters = new Map<string, FiscalDayCounter>();
+  const add = (key: string, patch: FiscalDayCounter, amountKey: "receiptTotalAmount" | "taxAmount" | "paymentAmount", amount: number, quantity = 0) => {
+    const current = counters.get(key) ?? patch;
+    current[amountKey] = Math.round((Number(current[amountKey] ?? 0) + amount) * 100) / 100;
+    if (quantity) current.receiptQuantity = Number(current.receiptQuantity ?? 0) + quantity;
+    counters.set(key, current);
+  };
+  for (const receipt of receipts) {
+    const taxRate = Number(receipt.tax_rate ?? 0);
+    const tax = resolveTaxConfig(config, taxRate);
+    const totals = calculateTotals((receipt.line_items as unknown as LineItem[]) ?? [], taxRate, Number(receipt.discount ?? 0));
+    add(`SaleByTax:${tax.taxCode}:${receiptCurrency}`, { receiptType: DEFAULT_RECEIPT_TYPE, receiptCurrency, taxCode: tax.taxCode, taxPercent: tax.taxPercent }, "receiptTotalAmount", totals.total, 1);
+    add(`SaleTaxByTax:${tax.taxCode}:${receiptCurrency}`, { receiptType: DEFAULT_RECEIPT_TYPE, receiptCurrency, taxCode: tax.taxCode, taxPercent: tax.taxPercent }, "taxAmount", totals.tax_amount);
+    add(`Payment:${DEFAULT_MONEY_TYPE_CODE}:${receiptCurrency}`, { receiptType: DEFAULT_RECEIPT_TYPE, receiptCurrency, moneyTypeCode: DEFAULT_MONEY_TYPE_CODE }, "paymentAmount", totals.total);
+  }
+  return Array.from(counters.values());
 }
 
 // ============================================================
@@ -404,9 +568,8 @@ export const testDeviceConnection = createServerFn({ method: "POST" })
     await ensureAdmin(context.supabase, context.userId, orgId);
     const { env, device } = await loadDevice(orgId);
     try {
-      const res = await getDeviceConfig(env, device);
-      if (!res.ok) return { ok: false, message: redactFdmsError(res.error).message };
-      return { ok: true, message: "Device reachable", data: res.data as unknown as Json };
+      const data = await fetchAndStoreDeviceConfig(orgId, env, device);
+      return { ok: true, message: "Device reachable", data: data as unknown as Json };
     } catch (e) {
       return { ok: false, message: e instanceof Error ? e.message : "Network error" };
     }
@@ -474,6 +637,7 @@ export const closeFiscalDay = createServerFn({ method: "POST" })
     const orgId = await activeOrgId(context.supabase, context.userId);
     await ensureAdmin(context.supabase, context.userId, orgId);
     const { env, device } = await loadDevice(orgId);
+    const deviceConfig = await latestDeviceConfig(orgId, env, device);
 
     const { data: openRow } = await supabaseAdmin
       .from("fiscal_days")
@@ -495,14 +659,12 @@ export const closeFiscalDay = createServerFn({ method: "POST" })
     const { data: receipts } = acceptedDocumentIds.length
       ? await supabaseAdmin
           .from("documents")
-          .select("total, tax_amount")
+          .select("total, tax_amount, tax_rate, discount, line_items")
           .eq("org_id", orgId)
           .eq("fiscal_day_no", openRow.fiscal_day_no)
           .in("id", acceptedDocumentIds)
       : { data: [] };
-    const totalSales = (receipts ?? []).reduce((s, r) => s + Number(r.total ?? 0), 0);
-    const totalTax = (receipts ?? []).reduce((s, r) => s + Number(r.tax_amount ?? 0), 0);
-    const totals = { totalSales, totalTax, receiptCount: (receipts ?? []).length };
+    const totals = buildFiscalDayCounters(receipts ?? [], await loadOrganizationCurrency(orgId), deviceConfig);
     const closedAt = new Date().toISOString();
 
     const res = await fdmsCloseDay(env, device, openRow.fiscal_day_no, totals, closedAt);
@@ -586,11 +748,12 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
     if (currentStatus?.status === "Accepted") throw new Error("Already submitted to ZIMRA");
 
     const { env, device } = await loadDevice(orgId);
+    const deviceConfig = await latestDeviceConfig(orgId, env, device);
     const allocation = await ReceiptCounterManager.allocateInvoiceCounters(orgId, doc.id);
     const receiptCurrency = await loadOrganizationCurrency(orgId);
 
     const lineItems = (doc.line_items as unknown as LineItem[]) ?? [];
-    const totals = computeTotals(lineItems, Number(doc.tax_rate), Number(doc.discount));
+    const totals = calculateTotals(lineItems, Number(doc.tax_rate), Number(doc.discount));
     const receiptGlobalNo = allocation.receiptGlobalNo;
     const receiptCounter = allocation.receiptCounter;
     const fiscalDayNo = allocation.fiscalDayNo;
@@ -617,11 +780,12 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
       : { data: null };
     const previousReceiptHash = prevRow?.receipt_hash ?? "";
 
-    // Build tax line: single VAT rate for the whole invoice (matches app model)
+    // Build tax line: single VAT rate for the whole invoice (matches app model).
+    const taxConfig = resolveTaxConfig(deviceConfig, Number(doc.tax_rate));
     const taxes = [
       {
-        taxCode: "A",
-        taxPercent: Number(doc.tax_rate),
+        taxCode: taxConfig.taxCode,
+        taxPercent: taxConfig.taxPercent,
         taxAmount: Math.round(totals.tax_amount * 100),
       },
     ];
@@ -663,19 +827,19 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
         receiptLinePrice: li.unit_price,
         receiptLineQuantity: li.quantity,
         receiptLineTotal: Math.round(li.quantity * li.unit_price * 100),
-        taxCode: "A",
-        taxPercent: Number(doc.tax_rate),
+        taxCode: taxConfig.taxCode,
+        taxPercent: taxConfig.taxPercent,
       })),
       receiptTaxes: [
         {
-          taxCode: "A",
-          taxPercent: Number(doc.tax_rate),
+          taxCode: taxConfig.taxCode,
+          taxPercent: taxConfig.taxPercent,
           taxAmount: Math.round(totals.tax_amount * 100),
           salesAmountWithTax: Math.round(totals.total * 100),
         },
       ],
       receiptPayments: [
-        { moneyTypeCode: "Cash", paymentAmount: Math.round(totals.total * 100) },
+        { moneyTypeCode: DEFAULT_MONEY_TYPE_CODE, paymentAmount: Math.round(totals.total * 100) },
       ],
       receiptTotal: Math.round(totals.total * 100),
       receiptPrintForm: "InvoiceA4",
@@ -683,6 +847,9 @@ export const submitInvoiceToZimra = createServerFn({ method: "POST" })
         hash: hashBase64,
       },
     };
+
+    validateReceiptLines(receiptPayload.receiptLines, receiptPayload.receiptLinesTaxInclusive);
+    validateReceiptPayments(deviceConfig, receiptPayload.receiptPayments, receiptPayload.receiptTotal);
 
     await appendReceiptStatus(doc.id, orgId, "Ready", "Receipt payload prepared");
     await appendReceiptStatus(doc.id, orgId, "Signed", "Receipt hash and verification code generated", {
