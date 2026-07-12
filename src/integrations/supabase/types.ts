@@ -466,8 +466,11 @@ export type Database = {
           certificate_pem: string | null
           certificate_secret_ref: string | null
           created_at: string
+          device_address: string | null
           device_id: string | null
           device_model: string | null
+          device_model_name: string | null
+          device_model_version: string | null
           device_operating_mode: string
           device_serial: string | null
           enabled: boolean
@@ -492,8 +495,11 @@ export type Database = {
           certificate_pem?: string | null
           certificate_secret_ref?: string | null
           created_at?: string
+          device_address?: string | null
           device_id?: string | null
           device_model?: string | null
+          device_model_name?: string | null
+          device_model_version?: string | null
           device_operating_mode?: string
           device_serial?: string | null
           enabled?: boolean
@@ -518,8 +524,11 @@ export type Database = {
           certificate_pem?: string | null
           certificate_secret_ref?: string | null
           created_at?: string
+          device_address?: string | null
           device_id?: string | null
           device_model?: string | null
+          device_model_name?: string | null
+          device_model_version?: string | null
           device_operating_mode?: string
           device_serial?: string | null
           enabled?: boolean

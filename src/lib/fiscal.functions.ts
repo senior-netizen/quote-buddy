@@ -91,13 +91,19 @@ export type FiscalConfig = {
   environment: "test" | "prod";
   device_id: string | null;
   device_serial: string | null;
+  device_address: string | null;
   device_model: string | null;
+  device_model_name: string | null;
+  device_model_version: string | null;
   tax_payer_name: string | null;
   tax_payer_tin: string | null;
   vat_number: string | null;
   trade_name: string | null;
   has_certificate: boolean;
   has_private_key: boolean;
+  has_activation_key: boolean;
+  device_address: string | null;
+  device_model_version: string | null;
   device_operating_mode: string;
   last_fiscal_day_no: number | null;
   last_receipt_global_no: number;
@@ -195,13 +201,19 @@ function stripSecrets(row: Record<string, unknown>, secretState?: { hasCertifica
     environment: (row.environment as "test" | "prod") ?? "test",
     device_id: (row.device_id as string) ?? null,
     device_serial: (row.device_serial as string) ?? null,
+    device_address: (row.device_address as string) ?? null,
     device_model: (row.device_model as string) ?? null,
+    device_model_name: ((row.device_model_name ?? row.device_model) as string) ?? null,
+    device_model_version: (row.device_model_version as string) ?? null,
     tax_payer_name: (row.tax_payer_name as string) ?? null,
     tax_payer_tin: (row.tax_payer_tin as string) ?? null,
     vat_number: (row.vat_number as string) ?? null,
     trade_name: (row.trade_name as string) ?? null,
     has_certificate: secretState?.hasCertificate ?? Boolean(row.certificate_secret_ref),
     has_private_key: secretState?.hasPrivateKey ?? Boolean(row.private_key_secret_ref),
+    has_activation_key: Boolean(row.activation_key_secret_ref ?? row.activation_key_encrypted ?? row.activation_key),
+    device_address: (row.device_address as string) ?? null,
+    device_model_version: (row.device_model_version as string) ?? null,
     device_operating_mode: (row.device_operating_mode as string) ?? "Online",
     last_fiscal_day_no: (row.last_fiscal_day_no as number) ?? null,
     last_receipt_global_no: Number(row.last_receipt_global_no ?? 0),
@@ -398,7 +410,10 @@ const updateSchema = z.object({
   environment: z.enum(["test", "prod"]).optional(),
   device_id: z.string().nullable().optional(),
   device_serial: z.string().nullable().optional(),
+  device_address: z.string().nullable().optional(),
   device_model: z.string().nullable().optional(),
+  device_model_name: z.string().nullable().optional(),
+  device_model_version: z.string().nullable().optional(),
   activation_key_secret_ref: z.string().nullable().optional(),
   tax_payer_name: z.string().nullable().optional(),
   tax_payer_tin: z.string().nullable().optional(),
