@@ -1,9 +1,3 @@
-import { createHash, createPrivateKey, generateKeyPairSync, randomUUID, X509Certificate } from "node:crypto";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { CsrGenerator } from "@/lib/fiscal/CsrGenerator";
-import { encryptFiscalSecret } from "@/lib/fiscal/secretStorage";
 import type { FdmsEnv } from "@/lib/fiscal/zimra.server";
 
 export type StoredCertificate = {
@@ -19,10 +13,38 @@ export type StoredCertificate = {
 export class CertificateManager {
   private readonly renewalWindowMs = 30 * 24 * 60 * 60 * 1000;
 
+  private async loadNodeCrypto() {
+    return import("node:crypto");
+  }
+
+  private async loadNodeFs() {
+    return import("node:fs/promises");
+  }
+
+  private async loadNodePath() {
+    return import("node:path");
+  }
+
+  private async loadSupabaseAdmin() {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    return supabaseAdmin;
+  }
+
+  private async loadCsrGenerator() {
+    const { CsrGenerator } = await import("@/lib/fiscal/CsrGenerator");
+    return new CsrGenerator();
+  }
+
+  private async loadSecretStorage() {
+    const { encryptFiscalSecret } = await import("@/lib/fiscal/secretStorage");
+    return { encryptFiscalSecret };
+  }
+
   readStartupConfig(env = process.env) {
+    const fdmsEnv = (env.FDMS_ENV as FdmsEnv | undefined) ?? "test";
     return {
-      fdmsEnv: env.FDMS_ENV as FdmsEnv | undefined,
-      apiBase: env.FDMS_API_BASE?.replace(/\/+$/, ""),
+      fdmsEnv,
+      apiBase: (env.FDMS_API_BASE?.replace(/\/+$/, "") ?? (fdmsEnv === "test" ? "https://fdmsapitest.zimra.co.zw" : "https://fdmsapi.zimra.co.zw")),
       deviceSerial: env.FDMS_DEVICE_SERIAL,
       deviceModel: env.FDMS_DEVICE_MODEL ?? "Server",
       companyName: env.FDMS_COMPANY_NAME,
@@ -52,6 +74,8 @@ export class CertificateManager {
       );
     }
 
+    const { mkdir } = await this.loadNodeFs();
+    const { join } = await this.loadNodePath();
     const certPath = join(config.certDir!, "client.crt");
     const keyPath = join(config.certDir!, "client.key");
     await mkdir(config.certDir!, { recursive: true, mode: 0o700 });
@@ -70,7 +94,8 @@ export class CertificateManager {
     }
 
     const privateKeyPem = await this.ensurePrivateKey(keyPath);
-    const csrPem = await new CsrGenerator().generateWithPrivateKey(
+    const csrGenerator = await this.loadCsrGenerator();
+    const csrPem = await csrGenerator.generateWithPrivateKey(
       {
         commonName: config.deviceSerial!,
         organizationName: config.companyName!,
@@ -87,7 +112,7 @@ export class CertificateManager {
       csrPem,
     });
 
-    const metadata = this.readCertificateMetadata(certificatePem);
+    const metadata = await this.readCertificateMetadata(certificatePem);
     if (!metadata.validTo) throw new Error("FDMS registration succeeded but returned an invalid certificate.");
     await this.atomicWrite(certPath, certificatePem, 0o600);
     console.info("[fdms-cert] FDMS client certificate provisioned successfully.", {
@@ -98,6 +123,8 @@ export class CertificateManager {
   }
 
   async readExistingCertificate(certPath: string, keyPath: string) {
+    const { readFile } = await this.loadNodeFs();
+    const { createPrivateKey } = await this.loadNodeCrypto();
     const [certExists, keyExists] = await Promise.all([this.exists(certPath), this.exists(keyPath)]);
     if (!certExists || !keyExists) return null;
     const certificatePem = await readFile(certPath, "utf8");
@@ -109,7 +136,7 @@ export class CertificateManager {
         `Invalid private key at ${keyPath}. Replace it with a valid RSA private key or remove it so provisioning can create one.`,
       );
     }
-    const metadata = this.readCertificateMetadata(certificatePem);
+    const metadata = await this.readCertificateMetadata(certificatePem);
     if (!metadata.validTo) throw new Error(`Invalid client certificate at ${certPath}. Remove it to request a replacement.`);
     const validToMs = Date.parse(metadata.validTo);
     if (validToMs <= Date.now()) return { status: "expired" as const, metadata };
@@ -118,6 +145,8 @@ export class CertificateManager {
   }
 
   async ensurePrivateKey(keyPath: string) {
+    const { readFile } = await this.loadNodeFs();
+    const { createPrivateKey } = await this.loadNodeCrypto();
     if (await this.exists(keyPath)) {
       const privateKeyPem = await readFile(keyPath, "utf8");
       try {
@@ -129,6 +158,7 @@ export class CertificateManager {
       }
       return privateKeyPem;
     }
+    const { generateKeyPairSync } = await this.loadNodeCrypto();
     const { privateKey } = generateKeyPairSync("rsa", {
       modulusLength: 2048,
       publicExponent: 0x10001,
@@ -188,12 +218,14 @@ export class CertificateManager {
   }
 
   private async atomicWrite(path: string, contents: string, mode: number) {
+    const { rename, writeFile } = await this.loadNodeFs();
     const tmpPath = `${path}.${process.pid}.${Date.now()}.tmp`;
     await writeFile(tmpPath, contents, { mode });
     await rename(tmpPath, path);
   }
 
   private async exists(path: string) {
+    const { stat } = await this.loadNodeFs();
     return stat(path).then(() => true, () => false);
   }
 
@@ -246,7 +278,10 @@ export class CertificateManager {
     issuedBy?: string | null;
     response?: unknown;
   }): Promise<StoredCertificate> {
-    const metadata = this.readCertificateMetadata(input.certificatePem);
+    const { randomUUID } = await this.loadNodeCrypto();
+    const { encryptFiscalSecret } = await this.loadSecretStorage();
+    const supabaseAdmin = await this.loadSupabaseAdmin();
+    const metadata = await this.readCertificateMetadata(input.certificatePem);
     const certificateId = randomUUID();
 
     const { data, error } = await supabaseAdmin
@@ -294,6 +329,7 @@ export class CertificateManager {
   }
 
   async recordRenewalDue(input: { orgId: string; deviceUuid: string; certificateId: string; reason?: string }) {
+    const supabaseAdmin = await this.loadSupabaseAdmin();
     const { error } = await supabaseAdmin.from("certificate_history").insert({
       org_id: input.orgId,
       device_id: input.deviceUuid,
@@ -304,7 +340,8 @@ export class CertificateManager {
     if (error) throw new Error(error.message);
   }
 
-  readCertificateMetadata(certificatePem: string) {
+  async readCertificateMetadata(certificatePem: string) {
+    const { createHash, X509Certificate } = await this.loadNodeCrypto();
     try {
       const cert = new X509Certificate(certificatePem);
       return {

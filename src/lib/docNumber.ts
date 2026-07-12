@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getDocumentTypePrefix, type DocumentType } from "@/lib/docTypes";
 
-export async function generateDocNumber(type: "quote" | "invoice", orgId: string): Promise<string> {
-  const prefix = type === "quote" ? "QT" : "INV";
+export async function generateDocNumber(type: DocumentType, orgId: string): Promise<string> {
+  const prefix = getDocumentTypePrefix(type);
   const year = new Date().getFullYear();
   const like = `${prefix}-${year}-%`;
 

@@ -101,11 +101,11 @@ function ResultCard({ result, issuerName }: { result: VerifyResult; issuerName: 
         </div>
         <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-sm sm:grid-cols-2 sm:gap-y-4">
           <Row label="Issuer" value={result.issuer} />
-          <Row label="Type" value={result.doc_type === "invoice" ? "Invoice" : "Quotation"} />
+          <Row label="Type" value={result.doc_type === "invoice" ? "Invoice" : result.doc_type === "credit_note" ? "Credit Note" : result.doc_type === "debit_note" ? "Debit Note" : result.doc_type === "receipt" ? "Receipt" : "Quotation"} />
           <Row label="Document №" value={<span className="font-mono">{result.doc_number}</span>} />
           <Row label="Issue date" value={formatDate(result.issue_date)} />
           <Row
-            label={result.doc_type === "invoice" ? "Due date" : "Valid until"}
+            label={result.doc_type === "invoice" || result.doc_type === "credit_note" ? "Due date" : "Valid until"}
             value={result.due_date ? formatDate(result.due_date) : "—"}
           />
           <Row label="Billed to" value={result.client_company} />

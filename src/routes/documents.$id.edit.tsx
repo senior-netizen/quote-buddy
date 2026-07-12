@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Plus, ArrowLeft } from "lucide-react";
 import { computeTotals, formatMoney, rowTotal, type LineItem } from "@/lib/calc";
+import { getDocumentTypeLabel, getDueDateLabel, type DocumentType } from "@/lib/docTypes";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/documents/$id/edit")({ component: Page });
@@ -39,7 +40,7 @@ function Editor() {
   const [taxRate, setTaxRate] = useState(15);
   const [discount, setDiscount] = useState(0);
   const [notes, setNotes] = useState("");
-  const [docType, setDocType] = useState<"quote" | "invoice">("quote");
+  const [docType, setDocType] = useState<DocumentType>("quote");
   const [loaded, setLoaded] = useState(false);
 
   const { data: doc } = useQuery({
@@ -70,7 +71,7 @@ function Editor() {
     setTaxRate(Number(doc.tax_rate));
     setDiscount(Number(doc.discount));
     setNotes(doc.notes ?? "");
-    setDocType(doc.doc_type as "quote" | "invoice");
+    setDocType((doc.doc_type as DocumentType | undefined) ?? "quote");
     setLoaded(true);
   }, [doc, loaded]);
 
@@ -120,7 +121,7 @@ function Editor() {
         </Link>
         <p className="mt-4 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Edit</p>
         <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight">
-          {docType === "quote" ? "Quotation" : "Invoice"} {docNumber}
+          {getDocumentTypeLabel(docType)} {docNumber}
         </h1>
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -140,7 +141,7 @@ function Editor() {
           <Field label="Issue date">
             <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
           </Field>
-          <Field label={docType === "invoice" ? "Due date" : "Valid until"}>
+          <Field label={getDueDateLabel(docType)}>
             <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </Field>
         </div>

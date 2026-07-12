@@ -24,7 +24,7 @@ export type ClientRecord = {
 
 export type Document = {
   id: string;
-  doc_type: "quote" | "invoice";
+  doc_type: "quote" | "invoice" | "credit_note" | "debit_note" | "receipt";
   doc_number: string;
   client_id: string;
   issue_date: string;
@@ -71,7 +71,7 @@ export type UpdateClientInput = Partial<CreateClientInput>;
 
 export type CreateDocumentInput = {
   client_id: string;
-  doc_type: "quote" | "invoice";
+  doc_type: "quote" | "invoice" | "credit_note" | "debit_note" | "receipt";
   doc_number: string;
   issue_date: string;
   due_date?: string | null;
@@ -127,7 +127,7 @@ export class QuoteScribeClient {
   };
 
   documents: {
-    list: (params?: { limit?: number; offset?: number; type?: "quote" | "invoice" }) => Promise<Paginated<Document>>;
+    list: (params?: { limit?: number; offset?: number; type?: "quote" | "invoice" | "credit_note" | "debit_note" | "receipt" }) => Promise<Paginated<Document>>;
     get: (id: string) => Promise<Single<Document & { client: ClientRecord }>>;
     create: (input: CreateDocumentInput) => Promise<Single<Document>>;
     update: (id: string, input: UpdateDocumentInput) => Promise<Single<Document>>;

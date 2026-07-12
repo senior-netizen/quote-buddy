@@ -15,6 +15,7 @@ import { issueVerifyToken } from "@/lib/verify.functions";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
 import { useActiveOrg, profileToBrand } from "@/lib/org";
 import { submitInvoiceToZimra, getFiscalConfig } from "@/lib/fiscal.functions";
+import { getDocumentTypeLabel, getDueDateLabel, isFiscalDocumentType, type DocumentType } from "@/lib/docTypes";
 
 export const Route = createFileRoute("/documents/$id/")({ component: Page });
 
@@ -32,7 +33,7 @@ type ReceiptStatus = "Draft" | "Ready" | "Signed" | "Submitted" | "Accepted" | "
 
 type DocFull = {
   id: string;
-  doc_type: "quote" | "invoice";
+  doc_type: DocumentType;
   doc_number: string;
   issue_date: string;
   due_date: string | null;
@@ -224,7 +225,7 @@ function Detail() {
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            {doc.doc_type === "quote" ? "Quotation" : "Invoice"}
+            {getDocumentTypeLabel(doc.doc_type)}
           </p>
           <h1 className="mt-2 font-mono text-2xl sm:text-3xl font-semibold tracking-tight break-all">{doc.doc_number}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -239,7 +240,7 @@ function Detail() {
               <span className="sm:hidden">{convert.isPending ? "…" : "Convert"}</span>
             </Button>
           )}
-          {doc.doc_type === "invoice" && fiscalCfg?.enabled && doc.current_receipt_status !== "Accepted" && (
+          {isFiscalDocumentType(doc.doc_type) && fiscalCfg?.enabled && doc.current_receipt_status !== "Accepted" && (
             <Button
               variant="outline"
               className="rounded-full"
@@ -265,7 +266,7 @@ function Detail() {
           </Link>
           <Button variant="outline" className="rounded-full" onClick={handleVerify}>
             <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Verify {doc.doc_type === "quote" ? "Quotation" : "Invoice"}</span>
+            <span className="hidden sm:inline">Verify {getDocumentTypeLabel(doc.doc_type)}</span>
             <span className="sm:hidden">Verify</span>
           </Button>
           <Button variant="outline" className="rounded-full" onClick={handlePreview}>
@@ -291,7 +292,7 @@ function Detail() {
             </div>
             <div className="sm:text-right">
               <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                {doc.doc_type === "invoice" ? "Due" : "Valid until"}
+                {getDueDateLabel(doc.doc_type) === "Due date" ? "Due" : "Valid until"}
               </div>
               <div className="mt-2">{doc.due_date ? formatDate(doc.due_date) : "—"}</div>
             </div>
@@ -339,7 +340,7 @@ function Detail() {
         </div>
 
         <aside className="space-y-4">
-          {doc.doc_type === "invoice" && fiscalCfg?.enabled && (
+          {isFiscalDocumentType(doc.doc_type) && fiscalCfg?.enabled && (
             <div className="rounded-2xl border border-hairline bg-card p-6">
               <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Fiscal receipt state</div>
               <div className="mt-2 flex items-center gap-2">

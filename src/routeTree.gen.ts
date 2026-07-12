@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DevelopersRouteImport } from './routes/developers'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -35,9 +37,19 @@ import { Route as ApiDocumentsYearTypeIdRouteImport } from './routes/api.documen
 import { Route as ApiPublicV1DocumentsIdVerifyRouteImport } from './routes/api.public.v1.documents.$id.verify'
 import { Route as ApiPublicV1DocumentsIdPdfRouteImport } from './routes/api.public.v1.documents.$id.pdf'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -170,7 +182,9 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/developers': typeof DevelopersRoute
   '/login': typeof LoginRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
   '/settings/api': typeof SettingsApiRoute
@@ -197,7 +211,9 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/developers': typeof DevelopersRoute
   '/login': typeof LoginRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
   '/settings/api': typeof SettingsApiRoute
@@ -225,7 +241,9 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/developers': typeof DevelopersRoute
   '/login': typeof LoginRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/documents/new': typeof DocumentsNewRoute
   '/invite/$token': typeof InviteTokenRoute
   '/settings/api': typeof SettingsApiRoute
@@ -254,7 +272,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/developers'
     | '/login'
+    | '/robots.txt'
     | '/settings'
+    | '/sitemap.xml'
     | '/documents/new'
     | '/invite/$token'
     | '/settings/api'
@@ -281,7 +301,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/developers'
     | '/login'
+    | '/robots.txt'
     | '/settings'
+    | '/sitemap.xml'
     | '/documents/new'
     | '/invite/$token'
     | '/settings/api'
@@ -308,7 +330,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/developers'
     | '/login'
+    | '/robots.txt'
     | '/settings'
+    | '/sitemap.xml'
     | '/documents/new'
     | '/invite/$token'
     | '/settings/api'
@@ -336,7 +360,9 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   DevelopersRoute: typeof DevelopersRoute
   LoginRoute: typeof LoginRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SettingsRoute: typeof SettingsRouteWithChildren
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   DocumentsNewRoute: typeof DocumentsNewRoute
   InviteTokenRoute: typeof InviteTokenRoute
   VerifyIdRoute: typeof VerifyIdRoute
@@ -352,11 +378,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -592,7 +632,9 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   DevelopersRoute: DevelopersRoute,
   LoginRoute: LoginRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SettingsRoute: SettingsRouteWithChildren,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   DocumentsNewRoute: DocumentsNewRoute,
   InviteTokenRoute: InviteTokenRoute,
   VerifyIdRoute: VerifyIdRoute,
@@ -608,3 +650,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

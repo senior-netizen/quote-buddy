@@ -4,6 +4,7 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/calc";
+import { getDocumentTypeShortLabel } from "@/lib/docTypes";
 import { Plus, ArrowUpRight } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({ component: Page });
@@ -111,7 +112,7 @@ function Dashboard() {
                       <td className="px-5 py-3 font-mono text-[12px]">{d.doc_number}</td>
                       <td className="px-5 py-3">
                         <span className="rounded-full border border-hairline px-2 py-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
-                          {d.doc_type === "quote" ? "Quote" : "Invoice"}
+                          {getDocumentTypeShortLabel((d.doc_type as "quote" | "invoice" | "credit_note" | "debit_note" | "receipt") ?? "quote")}
                         </span>
                       </td>
                       <td className="px-5 py-3">{getClientName(d.client)}</td>

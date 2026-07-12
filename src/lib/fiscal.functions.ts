@@ -577,6 +577,11 @@ async function loadOrganizationCurrency(orgId: string): Promise<string> {
   return (data?.currency?.trim() || "USD").toUpperCase();
 }
 
+function readOptionalEnv(name: string): string | null {
+  const value = process.env[name]?.trim();
+  return value ? value : null;
+}
+
 async function loadDevice(orgId: string): Promise<{
   env: FdmsEnv;
   device: FdmsDevice;
@@ -587,21 +592,45 @@ async function loadDevice(orgId: string): Promise<{
     .select("*")
     .eq("org_id", orgId)
     .maybeSingle();
-  if (!data) throw new Error("Fiscal config not found");
-  const configRow = data as Record<string, unknown>;
-  const { decryptFiscalSecret } = await loadFiscalSecretStorage();
-  if (!data.enabled) throw new Error("Fiscalisation is disabled for this organization");
-  if (!data.device_id) throw new Error("Device ID is not configured");
+  const configRow = (data as Record<string, unknown> | null) ?? {};
+  const envActivationKey = readOptionalEnv("FDMS_ACTIVATION_KEY");
+  const envCertificatePem = readOptionalEnv("FDMS_CLIENT_CERT_PEM") ?? readOptionalEnv("FDMS_CERTIFICATE_PEM");
+  const envPrivateKeyPem = readOptionalEnv("FDMS_PRIVATE_KEY_PEM");
+  const envDeviceId = readOptionalEnv("FDMS_DEVICE_ID");
+  const hasEnvRuntimeMaterial = Boolean(envDeviceId || envActivationKey || envCertificatePem || envPrivateKeyPem);
+
+  if (!data && !hasEnvRuntimeMaterial) throw new Error("Fiscal config not found");
+  if (!data?.enabled && !hasEnvRuntimeMaterial) throw new Error("Fiscalisation is disabled for this organization");
+
+  const encryptedActivationPayload = (configRow.activation_key_encrypted as string | null) ?? null;
+  const encryptedCertificatePayload = await activeEncryptedPayload(orgId, "device_certificates");
+  const encryptedPrivateKeyPayload = await activeEncryptedPayload(orgId, "device_keys");
+  const hasEncryptedSecrets = Boolean(encryptedActivationPayload || encryptedCertificatePayload || encryptedPrivateKeyPayload);
+  const decryptFiscalSecret = hasEncryptedSecrets ? (await loadFiscalSecretStorage()).decryptFiscalSecret : null;
+
+  const activationKey = decryptFiscalSecret
+    ? await decryptFiscalSecret(encryptedActivationPayload)
+    : null;
+  const certificatePem = decryptFiscalSecret
+    ? await decryptFiscalSecret(encryptedCertificatePayload)
+    : null;
+  const privateKeyPem = decryptFiscalSecret
+    ? await decryptFiscalSecret(encryptedPrivateKeyPayload)
+    : null;
+
+  const effectiveDeviceId = String((configRow.device_id as string | null | undefined) ?? envDeviceId ?? "");
+  if (!effectiveDeviceId) throw new Error("Device ID is not configured");
+
   return {
-    env: (data.environment as FdmsEnv) ?? "test",
+    env: (configRow.environment as FdmsEnv | undefined) ?? "test",
     device: {
-      deviceId: String(data.device_id),
-      deviceSerialNo: (data.device_serial as string) ?? null,
-      activationKey: await decryptFiscalSecret((configRow.activation_key_encrypted as string | null) ?? null),
-      certificatePem: await decryptFiscalSecret(await activeEncryptedPayload(orgId, "device_certificates")),
-      privateKeyPem: await decryptFiscalSecret(await activeEncryptedPayload(orgId, "device_keys")),
+      deviceId: effectiveDeviceId,
+      deviceSerialNo: ((configRow.device_serial as string | null | undefined) ?? readOptionalEnv("FDMS_DEVICE_SERIAL") ?? null),
+      activationKey: activationKey ?? envActivationKey,
+      certificatePem: certificatePem ?? envCertificatePem,
+      privateKeyPem: privateKeyPem ?? envPrivateKeyPem,
     },
-    row: data as Record<string, unknown>,
+    row: (data as Record<string, unknown> | null) ?? {},
   };
 }
 

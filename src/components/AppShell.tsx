@@ -84,13 +84,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-30 border-b border-hairline bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:gap-6 sm:px-6">
-          <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
-            <img
-              src="/ChatGPT%20Image%20Jul%207%2C%202026%2C%2011_23_14%20AM.png"
-              alt="Qouteflow"
-              className="h-6 w-6 object-contain"
-            />
-            <span className="text-[14px] font-semibold tracking-tight">Qouteflow</span>
+          <Link to="/dashboard" className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-transparent p-0">
+              <img
+                src="/logo.png"
+                alt="Qouteflow"
+                className="h-full w-full object-contain"
+              />
+            </div>
+            <span className="text-[17px] font-semibold tracking-tight">Qouteflow</span>
           </Link>
           <OrgSwitcher />
           <nav className="hidden md:flex items-center gap-1">

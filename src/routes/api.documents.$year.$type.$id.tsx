@@ -62,7 +62,16 @@ export const Route = createFileRoute("/api/documents/$year/$type/$id")({
 
         // Validate path segments match the document
         const expectedYear = doc.issue_date.slice(0, 4);
-        const expectedType = doc.doc_type === "invoice" ? "invoices" : "quotes";
+        const expectedType =
+          doc.doc_type === "invoice"
+            ? "invoices"
+            : doc.doc_type === "credit_note"
+              ? "credit-notes"
+              : doc.doc_type === "debit_note"
+                ? "debit-notes"
+                : doc.doc_type === "receipt"
+                  ? "receipts"
+                  : "quotes";
         if (params.year !== expectedYear || params.type !== expectedType) {
           return new Response("Not found", { status: 404 });
         }
@@ -134,7 +143,7 @@ export const Route = createFileRoute("/api/documents/$year/$type/$id")({
         const verifyUrl = `${origin}/verify/${doc.id}?sig=${encodeURIComponent(sig)}&h=${hash}`;
 
         const docForPdf: DocForPdf = {
-          doc_type: doc.doc_type as "quote" | "invoice",
+          doc_type: doc.doc_type,
           doc_number: doc.doc_number,
           issue_date: doc.issue_date,
           due_date: doc.due_date,

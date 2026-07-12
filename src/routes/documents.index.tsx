@@ -13,10 +13,11 @@ import { toast } from "sonner";
 import { generatePdfBlob, type DocForPdf } from "@/lib/pdf";
 import { issueVerifyToken } from "@/lib/verify.functions";
 import { useActiveOrg, profileToBrand } from "@/lib/org";
+import { getDocumentTypeShortLabel, type DocumentType } from "@/lib/docTypes";
 
 export const Route = createFileRoute("/documents/")({ component: Page });
 
-type Filter = "all" | "quote" | "invoice";
+type Filter = "all" | DocumentType;
 
 function Page() {
   return (
@@ -30,7 +31,7 @@ function Page() {
 
 type DocRow = {
   id: string;
-  doc_type: "quote" | "invoice";
+  doc_type: DocumentType;
   doc_number: string;
   issue_date: string;
   total: number;
@@ -85,7 +86,7 @@ function Documents() {
     const brand = await profileToBrand(activeOrg.profile);
 
     const docForPdf: DocForPdf = {
-      doc_type: doc.doc_type as "quote" | "invoice",
+      doc_type: doc.doc_type,
       doc_number: doc.doc_number,
       issue_date: doc.issue_date,
       due_date: doc.due_date,
@@ -152,7 +153,7 @@ function Documents() {
 
       <div className="mt-6 sm:mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="inline-flex w-fit rounded-full border border-hairline p-0.5">
-          {(["all", "quote", "invoice"] as const).map((f) => (
+          {(["all", "quote", "invoice", "credit_note", "debit_note", "receipt"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -160,7 +161,7 @@ function Documents() {
                 filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {f === "all" ? "All" : f === "quote" ? "Quotations" : "Invoices"}
+              {f === "all" ? "All" : f === "quote" ? "Quotes" : f === "invoice" ? "Invoices" : f === "credit_note" ? "Credit notes" : f === "debit_note" ? "Debit notes" : "Receipts"}
             </button>
           ))}
         </div>
@@ -215,7 +216,7 @@ function Documents() {
                     </td>
                     <td className="px-5 py-3">
                       <span className="rounded-full border border-hairline px-2 py-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
-                        {d.doc_type === "quote" ? "Quote" : "Invoice"}
+                        {getDocumentTypeShortLabel(d.doc_type)}
                       </span>
                     </td>
                     <td className="px-5 py-3">{d.client?.company_name ?? "—"}</td>

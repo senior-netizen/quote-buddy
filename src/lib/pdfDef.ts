@@ -2,9 +2,10 @@ import type { TDocumentDefinitions } from "pdfmake/interfaces";
 import QRCode from "qrcode";
 import type { Brand } from "./brand";
 import { formatDate, formatMoney, rowTotal, type LineItem } from "./calc";
+import type { DocumentType } from "./docTypes";
 
 export type DocForPdf = {
-  doc_type: "quote" | "invoice";
+  doc_type: DocumentType;
   doc_number: string;
   issue_date: string;
   due_date: string | null;
@@ -50,14 +51,14 @@ const HAIR = "#e5e7eb";
 /** Builds the structured storage path for a given document. */
 export function buildDocPath(d: Pick<DocForPdf, "doc_type" | "doc_number" | "issue_date">): string {
   const year = (d.issue_date || new Date().toISOString()).slice(0, 4);
-  const type = d.doc_type === "invoice" ? "invoices" : "quotes";
+  const type = d.doc_type === "invoice" ? "invoices" : d.doc_type === "credit_note" ? "credit-notes" : d.doc_type === "debit_note" ? "debit-notes" : d.doc_type === "receipt" ? "receipts" : "quotes";
   const safeNumber = d.doc_number.replace(/[^A-Za-z0-9._-]/g, "_");
   return `documents/${year}/${type}/${safeNumber}.pdf`;
 }
 
 export async function buildDef(d: DocForPdf): Promise<TDocumentDefinitions> {
   const isInvoice = d.doc_type === "invoice";
-  const title = isInvoice ? "Invoice" : "Quotation";
+  const title = d.doc_type === "invoice" ? "Invoice" : d.doc_type === "credit_note" ? "Credit Note" : d.doc_type === "debit_note" ? "Debit Note" : d.doc_type === "receipt" ? "Receipt" : "Quotation";
   const brand = d.brand;
 
   const qrDataUrl = d.verifyUrl

@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
 import { ReceiptEngine } from "@/lib/fiscal";
+import { documentTypeSchema, getDocumentTypePrefix, type DocumentType } from "@/lib/docTypes";
 
 const lineItemSchema = z.object({
   description: z.string(),
@@ -13,7 +14,7 @@ const lineItemSchema = z.object({
 
 const createDocumentSchema = z.object({
   clientId: z.string().uuid(),
-  docType: z.enum(["quote", "invoice"]),
+  docType: documentTypeSchema,
   docNumber: z.string().min(1),
   issueDate: z.string().min(1),
   dueDate: z.string().nullable(),
@@ -34,8 +35,8 @@ async function activeOrgId(userId: string): Promise<string> {
   return id;
 }
 
-async function generateDocumentNumber(type: "quote" | "invoice", orgId: string): Promise<string> {
-  const prefix = type === "quote" ? "QT" : "INV";
+async function generateDocumentNumber(type: DocumentType, orgId: string): Promise<string> {
+  const prefix = getDocumentTypePrefix(type);
   const year = new Date().getFullYear();
   const like = `${prefix}-${year}-%`;
   const { data, error } = await supabaseAdmin
@@ -54,7 +55,7 @@ async function generateDocumentNumber(type: "quote" | "invoice", orgId: string):
 
 export const getNextDocumentNumber = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ docType: z.enum(["quote", "invoice"]) }).parse(data))
+  .inputValidator((data: unknown) => z.object({ docType: documentTypeSchema }).parse(data))
   .handler(async ({ data, context }) => {
     const orgId = await activeOrgId(context.userId);
     return await generateDocumentNumber(data.docType, orgId);

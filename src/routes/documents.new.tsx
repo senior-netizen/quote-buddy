@@ -16,6 +16,7 @@ import { computeTotals, formatMoney, rowTotal, type LineItem } from "@/lib/calc"
 import { createDocument, getNextDocumentNumber, listDocumentClients } from "@/lib/documents.functions";
 import { useActiveOrg, profileToBrand } from "@/lib/org";
 import { downloadPdf, openPdfPreview, type DocForPdf } from "@/lib/pdf";
+import { DEFAULT_DOCUMENT_TYPE, getDocumentTypeLabel, getDueDateLabel, documentTypeSchema, type DocumentType } from "@/lib/docTypes";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/documents/new")({ component: Page });
@@ -47,7 +48,7 @@ function Creator() {
   const getNextDocumentNumberFn = useServerFn(getNextDocumentNumber);
   const listDocumentClientsFn = useServerFn(listDocumentClients);
   const { data: activeOrg } = useActiveOrg();
-  const [docType, setDocType] = useState<"quote" | "invoice">("quote");
+  const [docType, setDocType] = useState<DocumentType>(DEFAULT_DOCUMENT_TYPE);
   const [docNumber, setDocNumber] = useState("");
   const [issueDate, setIssueDate] = useState(todayISO());
   const [dueDate, setDueDate] = useState(plusDaysISO(14));
@@ -163,13 +164,13 @@ function Creator() {
       <div className="min-w-0">
         <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Create</p>
         <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight">
-          New {docType === "quote" ? "quotation" : "invoice"}
+          New {getDocumentTypeLabel(docType).toLowerCase()}
         </h1>
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Document type">
             <div className="inline-flex w-full rounded-full border border-hairline p-0.5">
-              {(["quote", "invoice"] as const).map((t) => (
+              {(["quote", "invoice", "credit_note", "debit_note", "receipt"] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -178,7 +179,7 @@ function Creator() {
                     docType === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {t === "quote" ? "Quotation" : "Invoice"}
+                  {t === "quote" ? "Quotation" : t === "invoice" ? "Invoice" : t === "credit_note" ? "Credit Note" : t === "debit_note" ? "Debit Note" : "Receipt"}
                 </button>
               ))}
             </div>
@@ -189,7 +190,7 @@ function Creator() {
           <Field label="Issue date">
             <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
           </Field>
-          <Field label={docType === "invoice" ? "Due date" : "Valid until"}>
+          <Field label={getDueDateLabel(docType)}>
             <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </Field>
         </div>

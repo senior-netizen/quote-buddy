@@ -14,7 +14,7 @@ export type ReceiptDraft = {
   orgId: string;
   userId: string;
   clientId: string;
-  docType: "quote" | "invoice";
+  docType: import("@/lib/docTypes").DocumentType;
   docNumber: string;
   issueDate: string;
   dueDate: string | null;

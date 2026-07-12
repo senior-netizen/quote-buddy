@@ -101,7 +101,7 @@ export const Route = createFileRoute("/api/public/v1/documents/$id/pdf")({
         const verifyUrl = `${url.origin}/verify/${doc.id}?sig=${encodeURIComponent(sig)}&h=${hash}`;
 
         const docForPdf: DocForPdf = {
-          doc_type: doc.doc_type as "quote" | "invoice",
+          doc_type: doc.doc_type,
           doc_number: doc.doc_number,
           issue_date: doc.issue_date,
           due_date: doc.due_date,

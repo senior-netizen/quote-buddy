@@ -8,6 +8,7 @@ import {
   optionsResponse,
 } from "@/lib/apiAuth.server";
 import { computeTotals, type LineItem } from "@/lib/calc";
+import { documentTypeSchema } from "@/lib/docTypes";
 
 const lineItem = z.object({
   description: z.string().min(1).max(500),
@@ -17,7 +18,7 @@ const lineItem = z.object({
 
 const docInput = z.object({
   client_id: z.string().uuid(),
-  doc_type: z.enum(["quote", "invoice"]),
+  doc_type: documentTypeSchema,
   doc_number: z.string().min(1).max(50),
   issue_date: z.string(),
   due_date: z.string().nullable().optional(),
@@ -44,7 +45,7 @@ export const Route = createFileRoute("/api/public/v1/documents")({
           .eq("org_id", auth.orgId)
           .order("created_at", { ascending: false })
           .range(offset, offset + limit - 1);
-        if (type === "quote" || type === "invoice") q = q.eq("doc_type", type);
+        if (type) q = q.eq("doc_type", type);
         const { data, error } = await q;
         if (error) return errorResponse(500, error.message);
         return jsonResponse({ data, limit, offset });
