@@ -188,7 +188,50 @@ async function nodeMtlsFetch(
   device: FdmsDevice & { certificatePem: string; privateKeyPem: string },
   ca: string,
 ) {
+  const { createPrivateKey, X509Certificate } = await import("node:crypto");
+  const { readFile } = await import("node:fs/promises");
   const { request } = await import("node:https");
+  const caPath = process.env.FDMS_CA_CERT;
+  if (!caPath) {
+    return mtlsErrorResponse(
+      "FDMS_CA_CERT is required for Node FDMS mTLS requests. Set it to the ZIMRA FDMS CA certificate PEM file path.",
+      "FDMS_CA_CERT_MISSING",
+    );
+  }
+  let ca: string;
+  try {
+    ca = await readFile(caPath, "utf8");
+  } catch (error) {
+    return mtlsErrorResponse(
+      `Unable to read FDMS CA certificate at ${caPath}. Check FDMS_CA_CERT and file permissions.`,
+      "FDMS_CA_CERT_UNREADABLE",
+      error,
+    );
+  }
+  try {
+    createPrivateKey(device.privateKeyPem);
+  } catch (error) {
+    return mtlsErrorResponse(
+      "The configured FDMS private key is invalid. Provide a valid PEM private key or rerun certificate provisioning.",
+      "FDMS_INVALID_PRIVATE_KEY",
+      error,
+    );
+  }
+  try {
+    const certificate = new X509Certificate(device.certificatePem);
+    if (Date.parse(certificate.validTo) <= Date.now()) {
+      return mtlsErrorResponse(
+        `The configured FDMS client certificate expired on ${certificate.validTo}. Rerun certificate provisioning before making FDMS requests.`,
+        "FDMS_CERTIFICATE_EXPIRED",
+      );
+    }
+  } catch (error) {
+    return mtlsErrorResponse(
+      "The configured FDMS client certificate is invalid. Rerun certificate provisioning or replace the certificate PEM.",
+      "FDMS_INVALID_CERTIFICATE",
+      error,
+    );
+  }
   return await new Promise<Response>((resolve, reject) => {
     const headers = Object.fromEntries(new Headers(init.headers).entries());
     const req = request(
@@ -223,7 +266,13 @@ async function nodeMtlsFetch(
         });
       },
     );
-    req.on("error", reject);
+    req.on("error", (error) =>
+      reject(
+        new Error(
+          `FDMS mTLS setup/request failed. Check client certificate, private key, FDMS_CA_CERT, and ZIMRA network access. Cause: ${error.message}`,
+        ),
+      ),
+    );
     if (typeof init.body === "string" || init.body instanceof Uint8Array) {
       req.write(init.body);
     }
@@ -231,51 +280,19 @@ async function nodeMtlsFetch(
   });
 }
 
-type FdmsTransportResult =
-  | { ok: true; transport: FdmsTransport }
-  | { ok: false; response: Response };
-
-async function nodeMtlsTransport(device: FdmsDevice): Promise<FdmsTransportResult> {
-  const certificatePem = device.certificatePem?.trim();
-  if (!certificatePem) return { ok: false, response: missingClientCertificateResponse() };
-
-  const privateKeyPem = device.privateKeyPem?.trim();
-  if (!privateKeyPem) return { ok: false, response: missingPrivateKeyResponse() };
-
-  const { X509Certificate, createPrivateKey } = await import("node:crypto");
-  try {
-    const certificate = new X509Certificate(certificatePem);
-    const expiresAt = Date.parse(certificate.validTo);
-    if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
-      return { ok: false, response: expiredCertificateResponse(certificate.validTo) };
-    }
-    createPrivateKey(privateKeyPem);
-  } catch {
-    return { ok: false, response: invalidCertificateResponse() };
-  }
-
-  const caPath = process.env[FDMS_CA_CERT_ENV]?.trim();
-  if (!caPath) return { ok: false, response: missingCaCertificateResponse(FDMS_CA_CERT_ENV) };
-
-  const { readFile } = await import("node:fs/promises");
-  let ca: string;
-  try {
-    ca = await readFile(caPath, "utf8");
-  } catch {
-    return { ok: false, response: missingCaCertificateResponse(caPath) };
-  }
-  if (!ca.trim()) return { ok: false, response: missingCaCertificateResponse(caPath) };
-
-  return {
-    ok: true,
-    transport: {
-      fetch: (url, init) =>
-        nodeMtlsFetch(url, init, { ...device, certificatePem, privateKeyPem }, ca),
-    },
-  };
+function mtlsErrorResponse(message: string, code: string, cause?: unknown): Response {
+  return new Response(
+    JSON.stringify({
+      title: "ZIMRA FDMS mTLS setup failed",
+      detail: message,
+      code,
+      cause: cause instanceof Error ? cause.message : undefined,
+    }),
+    { status: 495, headers: { "Content-Type": "application/json" } },
+  );
 }
 
-async function fdmsTransport(device: FdmsDevice): Promise<FdmsTransportResult> {
+async function fdmsTransport(device: FdmsDevice): Promise<FdmsTransport | null> {
   const binding = await cloudflareMtlsBinding();
   if (binding) {
     return { ok: true, transport: { fetch: (url, init) => binding.fetch(url, init) } };
@@ -305,7 +322,17 @@ async function fdmsFetch(
   if (device.activationKey) {
     headers.set("Authorization", `Bearer ${device.activationKey}`);
   }
-  return await transport.transport.fetch(url, { ...init, headers });
+  try {
+    return await transport.fetch(url, { ...init, headers });
+  } catch (error) {
+    return mtlsErrorResponse(
+      error instanceof Error
+        ? error.message
+        : "FDMS mTLS setup failed before the request could be completed.",
+      "FDMS_MTLS_SETUP_FAILED",
+      error,
+    );
+  }
 }
 
 async function fdmsActivationFetch(
