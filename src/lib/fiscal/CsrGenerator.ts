@@ -1,4 +1,4 @@
-import { createHash, createSign, generateKeyPairSync } from "node:crypto";
+import { createHash, createPrivateKey, createPublicKey, createSign, generateKeyPairSync } from "node:crypto";
 
 export type CsrSubject = {
   commonName: string;
@@ -91,30 +91,7 @@ export class CsrGenerator {
       publicKeyEncoding: { type: "spki", format: "pem" },
     });
 
-    const subjectName = seq(
-      attr("commonName", subject.commonName),
-      ...(subject.organizationName ? [attr("organizationName", subject.organizationName)] : []),
-      ...(subject.organizationalUnitName ? [attr("organizationalUnitName", subject.organizationalUnitName)] : []),
-      ...(subject.countryName ? [attr("countryName", subject.countryName)] : []),
-      ...(subject.serialNumber ? [attr("serialNumber", subject.serialNumber)] : []),
-    );
-    const publicKeyDer = Buffer.from(publicKey.replace(/-----[^-]+-----|\s/g, ""), "base64");
-    const certificationRequestInfo = seq(
-      tlv(0x02, Buffer.from([0x00])),
-      subjectName,
-      publicKeyDer,
-      tlv(0xa0, Buffer.alloc(0)),
-    );
-    const signer = createSign("RSA-SHA256");
-    signer.update(certificationRequestInfo);
-    signer.end();
-    const signature = signer.sign(privateKey);
-    const csrDer = seq(
-      certificationRequestInfo,
-      seq(oid(OIDS.sha256WithRsaEncryption), tlv(0x05, Buffer.alloc(0))),
-      tlv(0x03, Buffer.concat([Buffer.from([0x00]), signature])),
-    );
-    const csrPem = pem("CERTIFICATE REQUEST", csrDer);
+    const csrPem = this.generateWithPrivateKey(subject, privateKey);
 
     return {
       csrPem,
@@ -124,5 +101,34 @@ export class CsrGenerator {
       keySize,
       csrFingerprint: createHash("sha256").update(csrPem).digest("hex"),
     };
+  }
+
+  generateWithPrivateKey(subject: CsrSubject, privateKeyPem: string): string {
+    const privateKey = createPrivateKey(privateKeyPem);
+    const publicKey = createPublicKey(privateKey).export({ type: "spki", format: "pem" });
+    const subjectName = seq(
+      attr("commonName", subject.commonName),
+      ...(subject.organizationName ? [attr("organizationName", subject.organizationName)] : []),
+      ...(subject.organizationalUnitName ? [attr("organizationalUnitName", subject.organizationalUnitName)] : []),
+      ...(subject.countryName ? [attr("countryName", subject.countryName)] : []),
+      ...(subject.serialNumber ? [attr("serialNumber", subject.serialNumber)] : []),
+    );
+    const publicKeyDer = Buffer.from(String(publicKey).replace(/-----[^-]+-----|\s/g, ""), "base64");
+    const certificationRequestInfo = seq(
+      tlv(0x02, Buffer.from([0x00])),
+      subjectName,
+      publicKeyDer,
+      tlv(0xa0, Buffer.alloc(0)),
+    );
+    const signer = createSign("RSA-SHA256");
+    signer.update(certificationRequestInfo);
+    signer.end();
+    const signature = signer.sign(privateKeyPem);
+    const csrDer = seq(
+      certificationRequestInfo,
+      seq(oid(OIDS.sha256WithRsaEncryption), tlv(0x05, Buffer.alloc(0))),
+      tlv(0x03, Buffer.concat([Buffer.from([0x00]), signature])),
+    );
+    return pem("CERTIFICATE REQUEST", csrDer);
   }
 }
