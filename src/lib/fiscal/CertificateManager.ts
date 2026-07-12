@@ -70,7 +70,7 @@ export class CertificateManager {
     }
 
     const privateKeyPem = await this.ensurePrivateKey(keyPath);
-    const csrPem = new CsrGenerator().generateWithPrivateKey(
+    const csrPem = await new CsrGenerator().generateWithPrivateKey(
       {
         commonName: config.deviceSerial!,
         organizationName: config.companyName!,
