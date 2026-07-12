@@ -265,7 +265,8 @@ function FiscalSettings() {
           <div>
             <h2 className="text-lg font-medium">ZIMRA Fiscalisation</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Register your device with the Zimbabwe Revenue Authority's FDMS to submit invoices as fiscal receipts.
+              Register your device with the Zimbabwe Revenue Authority's FDMS to submit invoices as
+              fiscal receipts.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -283,7 +284,9 @@ function FiscalSettings() {
             <Label>Environment</Label>
             <select
               value={form.environment}
-              onChange={(e) => setForm((f) => ({ ...f, environment: e.target.value as "test" | "prod" }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, environment: e.target.value as "test" | "prod" }))
+              }
               className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="test">Sandbox (fdmsapitest.zimra.co.zw)</option>
@@ -292,23 +295,24 @@ function FiscalSettings() {
           </div>
           <div>
             <Label>Device ID</Label>
-            <Input value={form.device_id} onChange={(e) => setForm((f) => ({ ...f, device_id: e.target.value }))} />
+            <Input
+              value={form.device_id}
+              onChange={(e) => setForm((f) => ({ ...f, device_id: e.target.value }))}
+            />
           </div>
           <div>
             <Label>Device Serial Number</Label>
-            <Input value={form.device_serial} onChange={(e) => setForm((f) => ({ ...f, device_serial: e.target.value }))} />
+            <Input
+              value={form.device_serial}
+              onChange={(e) => setForm((f) => ({ ...f, device_serial: e.target.value }))}
+            />
           </div>
           <div>
-            <Label>Device Address</Label>
-            <Input value={form.device_address} onChange={(e) => setForm((f) => ({ ...f, device_address: e.target.value }))} />
-          </div>
-          <div>
-            <Label>Device Model Name</Label>
-            <Input value={form.device_model_name} onChange={(e) => setForm((f) => ({ ...f, device_model_name: e.target.value }))} placeholder="Server" />
-          </div>
-          <div>
-            <Label>Device Model Version</Label>
-            <Input value={form.device_model_version} onChange={(e) => setForm((f) => ({ ...f, device_model_version: e.target.value }))} placeholder="v1" />
+            <Label>Device Model</Label>
+            <Input
+              value={form.device_model}
+              onChange={(e) => setForm((f) => ({ ...f, device_model: e.target.value }))}
+            />
           </div>
           <div className="sm:col-span-2">
             <Label>Activation Key</Label>
@@ -320,19 +324,38 @@ function FiscalSettings() {
           </div>
           <div>
             <Label>Taxpayer name</Label>
-            <Input value={form.tax_payer_name} onChange={(e) => setForm((f) => ({ ...f, tax_payer_name: e.target.value }))} />
+            <Input
+              value={form.tax_payer_name}
+              onChange={(e) => setForm((f) => ({ ...f, tax_payer_name: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter this exactly as shown as the ZIMRA Company Name on the activation record.
+            </p>
           </div>
           <div>
             <Label>Trade name</Label>
-            <Input value={form.trade_name} onChange={(e) => setForm((f) => ({ ...f, trade_name: e.target.value }))} />
+            <Input
+              value={form.trade_name}
+              onChange={(e) => setForm((f) => ({ ...f, trade_name: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter this exactly as shown as the ZIMRA Trade Name on the activation record, even if
+              it differs from the company name.
+            </p>
           </div>
           <div>
             <Label>TIN</Label>
-            <Input value={form.tax_payer_tin} onChange={(e) => setForm((f) => ({ ...f, tax_payer_tin: e.target.value }))} />
+            <Input
+              value={form.tax_payer_tin}
+              onChange={(e) => setForm((f) => ({ ...f, tax_payer_tin: e.target.value }))}
+            />
           </div>
           <div>
             <Label>VAT number</Label>
-            <Input value={form.vat_number} onChange={(e) => setForm((f) => ({ ...f, vat_number: e.target.value }))} />
+            <Input
+              value={form.vat_number}
+              onChange={(e) => setForm((f) => ({ ...f, vat_number: e.target.value }))}
+            />
           </div>
         </div>
 
@@ -374,7 +397,11 @@ function FiscalSettings() {
             <Label>Device certificate (PEM)</Label>
             <Textarea
               rows={5}
-              placeholder={config?.has_certificate ? "•••••••••• (saved — paste a new one to replace)" : "-----BEGIN CERTIFICATE-----"}
+              placeholder={
+                config?.has_certificate
+                  ? "•••••••••• (saved — paste a new one to replace)"
+                  : "-----BEGIN CERTIFICATE-----"
+              }
               value={form.certificate_pem}
               onChange={(e) => setForm((f) => ({ ...f, certificate_pem: e.target.value }))}
             />
@@ -383,7 +410,11 @@ function FiscalSettings() {
             <Label>Device private key (PEM)</Label>
             <Textarea
               rows={5}
-              placeholder={config?.has_private_key ? "•••••••••• (saved — paste a new one to replace)" : "-----BEGIN PRIVATE KEY-----"}
+              placeholder={
+                config?.has_private_key
+                  ? "•••••••••• (saved — paste a new one to replace)"
+                  : "-----BEGIN PRIVATE KEY-----"
+              }
               value={form.private_key_pem}
               onChange={(e) => setForm((f) => ({ ...f, private_key_pem: e.target.value }))}
             />
@@ -397,7 +428,11 @@ function FiscalSettings() {
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
             {save.isPending ? "Saving…" : "Save settings"}
           </Button>
-          <Button variant="outline" onClick={() => test.mutate()} disabled={test.isPending || !config?.enabled}>
+          <Button
+            variant="outline"
+            onClick={() => test.mutate()}
+            disabled={test.isPending || !config?.enabled}
+          >
             {test.isPending ? "Testing…" : "Test connection"}
           </Button>
         </div>
@@ -413,9 +448,12 @@ function FiscalSettings() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-sm">
-                  Day <span className="font-mono">#{currDay.fiscal_day_no}</span> is <span className="font-medium">OPEN</span>
+                  Day <span className="font-mono">#{currDay.fiscal_day_no}</span> is{" "}
+                  <span className="font-medium">OPEN</span>
                 </div>
-                <div className="text-xs text-muted-foreground">Opened {new Date(currDay.opened_at).toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">
+                  Opened {new Date(currDay.opened_at).toLocaleString()}
+                </div>
               </div>
               <Button variant="outline" onClick={() => close.mutate()} disabled={close.isPending}>
                 {close.isPending ? "Closing…" : "Close day"}
@@ -447,7 +485,9 @@ function FiscalSettings() {
                   <tr key={d.id} className="border-t border-hairline">
                     <td className="p-3 font-mono">#{d.fiscal_day_no}</td>
                     <td className="p-3">{new Date(d.opened_at).toLocaleString()}</td>
-                    <td className="p-3">{d.closed_at ? new Date(d.closed_at).toLocaleString() : "—"}</td>
+                    <td className="p-3">
+                      {d.closed_at ? new Date(d.closed_at).toLocaleString() : "—"}
+                    </td>
                     <td className="p-3 uppercase text-xs">{d.status}</td>
                   </tr>
                 ))}
