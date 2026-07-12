@@ -26,7 +26,9 @@ type Form = {
   environment: "test" | "prod";
   device_id: string;
   device_serial: string;
-  device_model: string;
+  device_address: string;
+  device_model_name: string;
+  device_model_version: string;
   activation_key: string;
   tax_payer_name: string;
   tax_payer_tin: string;
@@ -66,7 +68,9 @@ function FiscalSettings() {
     environment: "test",
     device_id: "",
     device_serial: "",
-    device_model: "",
+    device_address: "",
+    device_model_name: "Server",
+    device_model_version: "v1",
     activation_key: "",
     tax_payer_name: "",
     tax_payer_tin: "",
@@ -85,7 +89,9 @@ function FiscalSettings() {
       environment: config.environment,
       device_id: config.device_id ?? "",
       device_serial: config.device_serial ?? "",
-      device_model: config.device_model ?? "",
+      device_address: config.device_address ?? "",
+      device_model_name: config.device_model_name ?? config.device_model ?? "Server",
+      device_model_version: config.device_model_version ?? "v1",
       activation_key: "",
       tax_payer_name: config.tax_payer_name ?? "",
       tax_payer_tin: config.tax_payer_tin ?? "",
@@ -188,8 +194,16 @@ function FiscalSettings() {
             <Input value={form.device_serial} onChange={(e) => setForm((f) => ({ ...f, device_serial: e.target.value }))} />
           </div>
           <div>
-            <Label>Device Model</Label>
-            <Input value={form.device_model} onChange={(e) => setForm((f) => ({ ...f, device_model: e.target.value }))} />
+            <Label>Device Address</Label>
+            <Input value={form.device_address} onChange={(e) => setForm((f) => ({ ...f, device_address: e.target.value }))} />
+          </div>
+          <div>
+            <Label>Device Model Name</Label>
+            <Input value={form.device_model_name} onChange={(e) => setForm((f) => ({ ...f, device_model_name: e.target.value }))} placeholder="Server" />
+          </div>
+          <div>
+            <Label>Device Model Version</Label>
+            <Input value={form.device_model_version} onChange={(e) => setForm((f) => ({ ...f, device_model_version: e.target.value }))} placeholder="v1" />
           </div>
           <div className="sm:col-span-2">
             <Label>Activation Key</Label>
