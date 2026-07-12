@@ -98,6 +98,9 @@ export type FiscalConfig = {
   trade_name: string | null;
   has_certificate: boolean;
   has_private_key: boolean;
+  has_activation_key: boolean;
+  device_address: string | null;
+  device_model_version: string | null;
   device_operating_mode: string;
   last_fiscal_day_no: number | null;
   last_receipt_global_no: number;
@@ -202,6 +205,9 @@ function stripSecrets(row: Record<string, unknown>, secretState?: { hasCertifica
     trade_name: (row.trade_name as string) ?? null,
     has_certificate: secretState?.hasCertificate ?? Boolean(row.certificate_secret_ref),
     has_private_key: secretState?.hasPrivateKey ?? Boolean(row.private_key_secret_ref),
+    has_activation_key: Boolean(row.activation_key_secret_ref ?? row.activation_key_encrypted ?? row.activation_key),
+    device_address: (row.device_address as string) ?? null,
+    device_model_version: (row.device_model_version as string) ?? null,
     device_operating_mode: (row.device_operating_mode as string) ?? "Online",
     last_fiscal_day_no: (row.last_fiscal_day_no as number) ?? null,
     last_receipt_global_no: Number(row.last_receipt_global_no ?? 0),
