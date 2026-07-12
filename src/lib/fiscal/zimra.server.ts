@@ -116,18 +116,34 @@ function hasDevicePem(
   return Boolean(device.certificatePem?.trim() && device.privateKeyPem?.trim());
 }
 
-function cloudflareMtlsBinding(): CloudflareMtlsBinding | null {
-  const binding = (globalThis as Record<string, unknown>)[CLOUDFLARE_MTLS_BINDING];
-  return binding &&
-    typeof binding === "object" &&
-    "fetch" in binding &&
-    typeof binding.fetch === "function"
-    ? (binding as CloudflareMtlsBinding)
+function asCloudflareMtlsBinding(value: unknown): CloudflareMtlsBinding | null {
+  return value &&
+    typeof value === "object" &&
+    "fetch" in value &&
+    typeof (value as { fetch?: unknown }).fetch === "function"
+    ? (value as CloudflareMtlsBinding)
     : null;
 }
 
+async function cloudflareMtlsBinding(): Promise<CloudflareMtlsBinding | null> {
+  const globalBinding = asCloudflareMtlsBinding(
+    (globalThis as Record<string, unknown>)[CLOUDFLARE_MTLS_BINDING],
+  );
+  if (globalBinding) return globalBinding;
+
+  const dynamicImport = new Function("specifier", "return import(specifier)") as (
+    specifier: string,
+  ) => Promise<{ env?: Record<string, unknown> }>;
+  const workersModule = await dynamicImport("cloudflare:workers").catch(() => null);
+  return asCloudflareMtlsBinding(workersModule?.env?.[CLOUDFLARE_MTLS_BINDING]);
+}
+
 function isNodeRuntime(): boolean {
-  return typeof process !== "undefined" && Boolean(process.versions?.node);
+  return (
+    typeof process !== "undefined" &&
+    Boolean(process.versions?.node) &&
+    process.release?.name === "node"
+  );
 }
 
 async function nodeMtlsFetch(
@@ -177,8 +193,8 @@ async function nodeMtlsFetch(
   });
 }
 
-function fdmsTransport(device: FdmsDevice): FdmsTransport | null {
-  const binding = cloudflareMtlsBinding();
+async function fdmsTransport(device: FdmsDevice): Promise<FdmsTransport | null> {
+  const binding = await cloudflareMtlsBinding();
   if (binding) {
     return { fetch: (url, init) => binding.fetch(url, init) };
   }
@@ -194,7 +210,7 @@ async function fdmsFetch(
   init: RequestInit,
   device: FdmsDevice,
 ): Promise<Response> {
-  const transport = fdmsTransport(device);
+  const transport = await fdmsTransport(device);
   if (!transport) return mtlsUnavailableResponse();
 
   const url = `${baseUrl(env)}${path}`;
