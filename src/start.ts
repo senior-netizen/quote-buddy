@@ -6,6 +6,7 @@ let fdmsProvisioningStarted = false;
 function startFdmsTestCertificateProvisioning() {
   if (
     fdmsProvisioningStarted ||
+    !import.meta.env.SSR ||
     typeof process === "undefined" ||
     !process.versions?.node ||
     process.env.FDMS_ENV !== "test"
@@ -13,7 +14,7 @@ function startFdmsTestCertificateProvisioning() {
     return;
   }
   fdmsProvisioningStarted = true;
-  void import("@/lib/fiscal/CertificateManager")
+  void import(/* @vite-ignore */ "./lib/fiscal/CertificateManager")
     .then(({ CertificateManager }) =>
       new CertificateManager().provisionTestCertificate().catch((error) => {
         console.error("[fdms-cert] Startup certificate provisioning failed.", {
