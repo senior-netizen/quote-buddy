@@ -88,7 +88,7 @@ export class FiscalDeviceService {
     commonName: string;
     encryptedPrivateKeyRef?: string;
   }) {
-    const csr = this.csrGenerator.generate({ commonName: input.commonName, serialNumber: input.fdmsDeviceId });
+    const csr = await this.csrGenerator.generate({ commonName: input.commonName, serialNumber: input.fdmsDeviceId });
 
     const encryptedPrivateKey = await encryptFiscalSecret(csr.privateKeyPem);
     const { error: keyError } = await supabaseAdmin.from("device_keys").insert({

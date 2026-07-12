@@ -1,5 +1,3 @@
-import { createHash, createPrivateKey, createPublicKey, createSign, generateKeyPairSync } from "node:crypto";
-
 export type CsrSubject = {
   commonName: string;
   organizationName?: string | null;
@@ -83,7 +81,8 @@ function pem(label: string, der: Buffer) {
 }
 
 export class CsrGenerator {
-  generate(subject: CsrSubject, keySize = 2048): GeneratedCsr {
+  async generate(subject: CsrSubject, keySize = 2048): Promise<GeneratedCsr> {
+    const { createHash, generateKeyPairSync } = await import("node:crypto");
     const { privateKey, publicKey } = generateKeyPairSync("rsa", {
       modulusLength: keySize,
       publicExponent: 0x10001,
@@ -91,7 +90,7 @@ export class CsrGenerator {
       publicKeyEncoding: { type: "spki", format: "pem" },
     });
 
-    const csrPem = this.generateWithPrivateKey(subject, privateKey);
+    const csrPem = await this.generateWithPrivateKey(subject, privateKey);
 
     return {
       csrPem,
@@ -103,7 +102,8 @@ export class CsrGenerator {
     };
   }
 
-  generateWithPrivateKey(subject: CsrSubject, privateKeyPem: string): string {
+  async generateWithPrivateKey(subject: CsrSubject, privateKeyPem: string): Promise<string> {
+    const { createPrivateKey, createPublicKey, createSign } = await import("node:crypto");
     const privateKey = createPrivateKey(privateKeyPem);
     const publicKey = createPublicKey(privateKey).export({ type: "spki", format: "pem" });
     const subjectName = seq(
