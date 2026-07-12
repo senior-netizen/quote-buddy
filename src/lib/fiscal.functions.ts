@@ -465,8 +465,10 @@ export const updateFiscalConfig = createServerFn({ method: "POST" })
 
 type FiscalSecretStorage = typeof import("@/lib/fiscal/secretStorage");
 
+const fiscalSecretStorageModule = "@/lib/fiscal/secretStorage";
+
 async function loadFiscalSecretStorage(): Promise<FiscalSecretStorage> {
-  return import("@/lib/fiscal/secretStorage");
+  return import(/* @vite-ignore */ fiscalSecretStorageModule);
 }
 
 const secureOnboardingSchema = z.object({
