@@ -211,8 +211,6 @@ function stripSecrets(row: Record<string, unknown>, secretState?: { hasCertifica
     has_certificate: secretState?.hasCertificate ?? Boolean(row.certificate_secret_ref),
     has_private_key: secretState?.hasPrivateKey ?? Boolean(row.private_key_secret_ref),
     has_activation_key: Boolean(row.activation_key_secret_ref ?? row.activation_key_encrypted ?? row.activation_key),
-    device_address: (row.device_address as string) ?? null,
-    device_model_version: (row.device_model_version as string) ?? null,
     device_operating_mode: (row.device_operating_mode as string) ?? "Online",
     last_fiscal_day_no: (row.last_fiscal_day_no as number) ?? null,
     last_receipt_global_no: Number(row.last_receipt_global_no ?? 0),

@@ -1,9 +1,4 @@
-import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { CertificateManager } from "@/lib/fiscal/CertificateManager";
-import { encryptFiscalSecret, sha256Hex } from "@/lib/fiscal/secretStorage";
-import { ConfigurationManager } from "@/lib/fiscal/ConfigurationManager";
-import { CsrGenerator } from "@/lib/fiscal/CsrGenerator";
 import {
   getDeviceConfig,
   issueDeviceCertificate,
@@ -27,11 +22,7 @@ export type DeviceRegistrationInput = TaxpayerVerificationInput & {
 };
 
 export class FiscalDeviceService {
-  constructor(
-    private readonly csrGenerator = new CsrGenerator(),
-    private readonly certificateManager = new CertificateManager(),
-    private readonly configurationManager = new ConfigurationManager(),
-  ) {}
+  constructor() {}
 
   async verifyTaxpayer(input: TaxpayerVerificationInput) {
     return verifyTaxpayer(input.env, { taxpayerTin: input.taxpayerTin, vatNumber: input.vatNumber });
@@ -56,7 +47,9 @@ export class FiscalDeviceService {
     const activationKey = String(registration.data.activationKey ?? registrationData.deviceActivationKey ?? "");
     if (!fdmsDeviceId || !activationKey) throw new Error("FDMS registration response did not include a device id and activation key");
 
+    const { randomUUID } = await import("node:crypto");
     const deviceUuid = randomUUID();
+    const { encryptFiscalSecret } = await import("@/lib/fiscal/secretStorage");
     const encryptedActivationKey = await encryptFiscalSecret(activationKey);
     const { error } = await supabaseAdmin.from("devices").insert({
       id: deviceUuid,
@@ -88,8 +81,11 @@ export class FiscalDeviceService {
     commonName: string;
     encryptedPrivateKeyRef?: string;
   }) {
-    const csr = await this.csrGenerator.generate({ commonName: input.commonName, serialNumber: input.fdmsDeviceId });
+    const { CsrGenerator } = await import("@/lib/fiscal/CsrGenerator");
+    const csrGenerator = new CsrGenerator();
+    const csr = await csrGenerator.generate({ commonName: input.commonName, serialNumber: input.fdmsDeviceId });
 
+    const { encryptFiscalSecret } = await import("@/lib/fiscal/secretStorage");
     const encryptedPrivateKey = await encryptFiscalSecret(csr.privateKeyPem);
     const { error: keyError } = await supabaseAdmin.from("device_keys").insert({
       org_id: input.orgId,
@@ -117,7 +113,9 @@ export class FiscalDeviceService {
     const certificatePem = String(issued.data.certificatePem ?? issued.data.certificate ?? "");
     if (!certificatePem) throw new Error("FDMS certificate response did not include certificate PEM");
 
-    const certificate = await this.certificateManager.storeIssuedCertificate({
+    const { CertificateManager } = await import("@/lib/fiscal/CertificateManager");
+    const certificateManager = new CertificateManager();
+    const certificate = await certificateManager.storeIssuedCertificate({
       orgId: input.orgId,
       deviceUuid: input.deviceUuid,
       fdmsDeviceId: input.fdmsDeviceId,
@@ -140,7 +138,9 @@ export class FiscalDeviceService {
       privateKeyPem: null,
     });
     if (!result.ok) return result;
-    const snapshot = await this.configurationManager.storeSnapshot({
+    const { ConfigurationManager } = await import("@/lib/fiscal/ConfigurationManager");
+    const configurationManager = new ConfigurationManager();
+    const snapshot = await configurationManager.storeSnapshot({
       orgId: input.orgId,
       deviceUuid: input.deviceUuid,
       fdmsDeviceId: input.fdmsDeviceId,

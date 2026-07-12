@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+// `randomBytes` is only used server-side; import it dynamically inside `randomToken()`
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -320,7 +320,8 @@ export const listMembers = createServerFn({ method: "GET" })
     return out;
   });
 
-function randomToken(): string {
+async function randomToken(): Promise<string> {
+  const { randomBytes } = await import("node:crypto");
   return randomBytes(32).toString("hex");
 }
 
@@ -371,7 +372,7 @@ export const inviteMember = createServerFn({ method: "POST" })
       throw new Error("Only owners can invite other owners");
     }
 
-    const token = randomToken();
+    const token = await randomToken();
     const { data: inv, error } = await supabaseAdmin
       .from("organization_invitations")
       .insert({
