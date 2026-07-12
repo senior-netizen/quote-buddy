@@ -89,6 +89,7 @@ function baseUrl(env: FdmsEnv): string {
 }
 
 const CLOUDFLARE_MTLS_BINDING = "ZIMRA_FDMS_MTLS_CERT";
+const FDMS_CA_CERT_ENV = "FDMS_CA_CERT";
 
 type CloudflareMtlsBinding = {
   fetch: typeof fetch;
@@ -98,22 +99,57 @@ type FdmsTransport = {
   fetch(url: string, init: RequestInit): Promise<Response>;
 };
 
-function mtlsUnavailableResponse(): Response {
+function mtlsErrorResponse(code: string, detail: string): Response {
   return new Response(
     JSON.stringify({
       title: "ZIMRA FDMS mTLS is not configured",
-      detail:
-        "FDMS requires mutual TLS. Configure the Cloudflare Workers mTLS binding ZIMRA_FDMS_MTLS_CERT, or provide decrypted device certificate and private key PEM material in a Node/server runtime.",
-      code: "FDMS_MTLS_UNAVAILABLE",
+      detail,
+      code,
     }),
     { status: 495, headers: { "Content-Type": "application/json" } },
   );
 }
 
-function hasDevicePem(
-  device: FdmsDevice,
-): device is FdmsDevice & { certificatePem: string; privateKeyPem: string } {
-  return Boolean(device.certificatePem?.trim() && device.privateKeyPem?.trim());
+function missingClientCertificateResponse(): Response {
+  return mtlsErrorResponse(
+    "FDMS_CLIENT_CERT_MISSING",
+    "No client certificate found. Attempting automatic registration... FDMS requests that require mTLS cannot be sent until ZIMRA issues and stores a client certificate for this device.",
+  );
+}
+
+function missingPrivateKeyResponse(): Response {
+  return mtlsErrorResponse(
+    "FDMS_PRIVATE_KEY_MISSING",
+    "Missing private key for the ZIMRA client certificate. Restore the encrypted device private key before FDMS requests can be sent.",
+  );
+}
+
+function missingCaCertificateResponse(path: string): Response {
+  return mtlsErrorResponse(
+    "FDMS_CA_CERT_MISSING",
+    `Missing ZIMRA CA certificate at ${path}. Configure ${FDMS_CA_CERT_ENV} before FDMS requests can be sent.`,
+  );
+}
+
+function invalidCertificateResponse(): Response {
+  return mtlsErrorResponse(
+    "FDMS_CLIENT_CERT_INVALID",
+    "Invalid ZIMRA client certificate. Re-issue the device certificate before FDMS requests can be sent.",
+  );
+}
+
+function expiredCertificateResponse(validTo: string): Response {
+  return mtlsErrorResponse(
+    "FDMS_CLIENT_CERT_EXPIRED",
+    `Expired ZIMRA client certificate (expired at ${validTo}). Re-issue the device certificate before FDMS requests can be sent.`,
+  );
+}
+
+function unsupportedRuntimeMtlsResponse(): Response {
+  return mtlsErrorResponse(
+    "FDMS_MTLS_UNSUPPORTED_RUNTIME",
+    `Unsupported runtime mTLS configuration. Configure the Cloudflare Workers mTLS binding ${CLOUDFLARE_MTLS_BINDING}, or run in Node with decrypted device certificate and private key PEM material plus ${FDMS_CA_CERT_ENV}.`,
+  );
 }
 
 function asCloudflareMtlsBinding(value: unknown): CloudflareMtlsBinding | null {
@@ -150,6 +186,7 @@ async function nodeMtlsFetch(
   url: string,
   init: RequestInit,
   device: FdmsDevice & { certificatePem: string; privateKeyPem: string },
+  ca: string,
 ) {
   const { createPrivateKey, X509Certificate } = await import("node:crypto");
   const { readFile } = await import("node:fs/promises");
@@ -258,12 +295,12 @@ function mtlsErrorResponse(message: string, code: string, cause?: unknown): Resp
 async function fdmsTransport(device: FdmsDevice): Promise<FdmsTransport | null> {
   const binding = await cloudflareMtlsBinding();
   if (binding) {
-    return { fetch: (url, init) => binding.fetch(url, init) };
+    return { ok: true, transport: { fetch: (url, init) => binding.fetch(url, init) } };
   }
-  if (isNodeRuntime() && hasDevicePem(device)) {
-    return { fetch: (url, init) => nodeMtlsFetch(url, init, device) };
+  if (isNodeRuntime()) {
+    return nodeMtlsTransport(device);
   }
-  return null;
+  return { ok: false, response: unsupportedRuntimeMtlsResponse() };
 }
 
 async function fdmsFetch(
@@ -273,7 +310,7 @@ async function fdmsFetch(
   device: FdmsDevice,
 ): Promise<Response> {
   const transport = await fdmsTransport(device);
-  if (!transport) return mtlsUnavailableResponse();
+  if (!transport.ok) return transport.response;
 
   const url = `${baseUrl(env)}${path}`;
   const headers = new Headers(init.headers);
