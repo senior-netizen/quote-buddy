@@ -5,7 +5,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { computeReceiptHash } from "@/lib/fiscal/receiptHash";
-import { decryptFiscalSecret, encryptFiscalSecret, sha256Hex } from "@/lib/fiscal/secretStorage";
 import { FiscalCounterManager as ReceiptCounterManager } from "@/lib/fiscalCounterManager";
 import {
   openDay as fdmsOpenDay,
@@ -464,6 +463,11 @@ export const updateFiscalConfig = createServerFn({ method: "POST" })
     return stripSecrets(inserted as Record<string, unknown>);
   });
 
+type FiscalSecretStorage = typeof import("@/lib/fiscal/secretStorage");
+
+async function loadFiscalSecretStorage(): Promise<FiscalSecretStorage> {
+  return import("@/lib/fiscal/secretStorage");
+}
 
 const secureOnboardingSchema = z.object({
   activation_key: z.string().min(1).optional(),
@@ -473,6 +477,19 @@ const secureOnboardingSchema = z.object({
   valid_from: z.string().datetime().nullable().optional(),
   valid_until: z.string().datetime().nullable().optional(),
 }).strict();
+
+async function assertFiscalSecretStorageReady(data: z.infer<typeof secureOnboardingSchema>) {
+  if (data.activation_key || data.certificate_pem || data.private_key_pem) {
+    await loadFiscalSecretStorage();
+  }
+}
+
+async function ensureFiscalConfigRow(orgId: string) {
+  const { error } = await supabaseAdmin
+    .from("organization_fiscal_config")
+    .upsert({ org_id: orgId } as never, { onConflict: "org_id", ignoreDuplicates: true });
+  if (error) throw new Error(error.message);
+}
 
 /** Dedicated server-side onboarding flow for encrypting and storing fiscal secrets. */
 export const onboardFiscalDeviceSecrets = createServerFn({ method: "POST" })
@@ -484,6 +501,8 @@ export const onboardFiscalDeviceSecrets = createServerFn({ method: "POST" })
 
     await assertFiscalSecretStorageReady(data);
     await ensureFiscalConfigRow(orgId);
+
+    const { encryptFiscalSecret, sha256Hex } = await loadFiscalSecretStorage();
 
     const now = new Date().toISOString();
     const validFrom = data.valid_from ?? now;
@@ -568,6 +587,7 @@ async function loadDevice(orgId: string): Promise<{
     .maybeSingle();
   if (!data) throw new Error("Fiscal config not found");
   const configRow = data as Record<string, unknown>;
+  const { decryptFiscalSecret } = await loadFiscalSecretStorage();
   if (!data.enabled) throw new Error("Fiscalisation is disabled for this organization");
   if (!data.device_id) throw new Error("Device ID is not configured");
   return {
