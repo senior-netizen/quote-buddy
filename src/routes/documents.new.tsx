@@ -48,6 +48,7 @@ function Creator() {
   const getNextDocumentNumberFn = useServerFn(getNextDocumentNumber);
   const listDocumentClientsFn = useServerFn(listDocumentClients);
   const { data: activeOrg } = useActiveOrg();
+  const currency = activeOrg?.profile.currency || "USD";
   const [docType, setDocType] = useState<DocumentType>(DEFAULT_DOCUMENT_TYPE);
   const [docNumber, setDocNumber] = useState("");
   const [issueDate, setIssueDate] = useState(todayISO());
@@ -268,7 +269,7 @@ function Creator() {
                   </div>
                   <div className="text-right">
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground sm:hidden">Amount</div>
-                    <div className="text-sm tabular py-2">{formatMoney(rowTotal(it))}</div>
+                    <div className="text-sm tabular py-2">{formatMoney(rowTotal(it), currency)}</div>
                   </div>
                   <button
                     type="button"
@@ -304,13 +305,13 @@ function Creator() {
         <div className="rounded-2xl border border-hairline bg-card p-5 sm:p-6">
           <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Summary</div>
           <dl className="mt-5 space-y-3 text-sm">
-            <Row label="Subtotal" value={formatMoney(totals.subtotal)} />
-            <Row label={`Tax (${taxRate}%)`} value={formatMoney(totals.tax_amount)} />
-            {discount > 0 && <Row label="Discount" value={`− ${formatMoney(discount)}`} />}
+            <Row label="Subtotal" value={formatMoney(totals.subtotal, currency)} />
+            <Row label={`Tax (${taxRate}%)`} value={formatMoney(totals.tax_amount, currency)} />
+            {discount > 0 && <Row label="Discount" value={`− ${formatMoney(discount, currency)}`} />}
             <div className="my-3 border-t border-hairline" />
             <div className="flex items-baseline justify-between">
               <dt className="text-sm font-medium">Total</dt>
-              <dd className="text-2xl font-semibold tracking-tight tabular">{formatMoney(totals.total)}</dd>
+              <dd className="text-2xl font-semibold tracking-tight tabular">{formatMoney(totals.total, currency)}</dd>
             </div>
           </dl>
           <div className="mt-6 flex flex-col gap-2">

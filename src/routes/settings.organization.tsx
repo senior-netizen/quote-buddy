@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useActiveOrg } from "@/lib/org";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Upload, Trash2 } from "lucide-react";
+import { CURRENCIES } from "@/lib/currencies";
 
 export const Route = createFileRoute("/settings/organization")({ component: OrgSettings });
 
@@ -231,7 +233,11 @@ function OrgSettings() {
         <h2 className="text-sm font-medium">Document defaults</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Currency">
-            <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} disabled={!canEdit} />
+            <CurrencySelect
+              value={form.currency}
+              onChange={(v) => setForm({ ...form, currency: v })}
+              disabled={!canEdit}
+            />
           </Field>
           <Field label="Default tax rate (%)">
             <Input
@@ -264,5 +270,68 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <Label className="text-xs">{label}</Label>
       {children}
     </div>
+  );
+}
+
+function CurrencySelect({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return CURRENCIES;
+    return CURRENCIES.filter(
+      (c) => c.code.toLowerCase().includes(q) || c.label.toLowerCase().includes(q),
+    );
+  }, [query]);
+
+  // Deduplicate by code (some currencies appear twice in the list)
+  const unique = useMemo(() => {
+    const seen = new Set<string>();
+    return filtered.filter((c) => {
+      if (seen.has(c.code)) return false;
+      seen.add(c.code);
+      return true;
+    });
+  }, [filtered]);
+
+  return (
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select currency" />
+      </SelectTrigger>
+      <SelectContent>
+        {/* Search box inside the dropdown */}
+        <div className="sticky top-0 z-10 border-b border-hairline bg-popover px-2 py-1.5">
+          <Input
+            placeholder="Search currencies…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.stopPropagation()}
+            className="h-7 text-xs"
+            autoFocus
+          />
+        </div>
+        {unique.length === 0 ? (
+          <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+            No currencies found
+          </div>
+        ) : (
+          unique.map((c) => (
+            <SelectItem key={c.code} value={c.code} className="text-sm">
+              <span className="font-mono text-xs text-muted-foreground mr-2">{c.code}</span>
+              {c.label}
+            </SelectItem>
+          ))
+        )}
+      </SelectContent>
+    </Select>
   );
 }

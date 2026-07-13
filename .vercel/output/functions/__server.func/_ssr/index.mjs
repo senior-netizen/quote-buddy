@@ -109,41 +109,13 @@ async function getStartManifest(matchedRoutes) {
   };
 }
 const manifest = {
-  "21c9ee1831c97b4f9b584fa79f48a4f00c4d074733709bd4563c6771b1737191": {
-    functionName: "getFiscalConfig_createServerFn_handler",
-    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
+  "62aee870b7d352bb450ac12ee2012d64454b03b21e0c3fb64dc9fcd5484a053d": {
+    functionName: "issueVerifyToken_createServerFn_handler",
+    importer: () => import("./verify.functions-B-Vj3Awb.mjs")
   },
-  "ae82a81d5d9218ce267825c9c94ebf3e394b99dcf6384a46776ad985c5f8f043": {
-    functionName: "updateFiscalConfig_createServerFn_handler",
-    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
-  },
-  "38a97d9c9d765dc240e136351e6fd81fcabf21702dc80ed69b3880ef8424ce6f": {
-    functionName: "onboardFiscalDeviceSecrets_createServerFn_handler",
-    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
-  },
-  "c276c80f7dd2c23a283c99a9de94889fe3c329369162f7e1ad23fba93ec1fc5e": {
-    functionName: "testDeviceConnection_createServerFn_handler",
-    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
-  },
-  "96108773d83181d2a0248149fecb5d6176770cc4ba97e7b6c019d4747c9ea510": {
-    functionName: "openFiscalDay_createServerFn_handler",
-    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
-  },
-  "193fc5971a8908606af82fcef861697128c26abaf78286d771fcf90cb9327770": {
-    functionName: "closeFiscalDay_createServerFn_handler",
-    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
-  },
-  "b73683f3df0dbdedf64cccb0f889ee0840b5683df33bbd67f4e60b523aa55a00": {
-    functionName: "listFiscalDays_createServerFn_handler",
-    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
-  },
-  "ccfaa7b3e8430b8438e213dfaf47a4ba9469d265ffde5307bb6dfe41ac9d2a6c": {
-    functionName: "submitInvoiceToZimra_createServerFn_handler",
-    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
-  },
-  "8071501d4737b90b81697bc956d93debcb5ebaaa4a88a9cab55afea92c40ee50": {
-    functionName: "getCurrentFiscalDay_createServerFn_handler",
-    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
+  "e95f2d768f72026d754fdf5fc3e00d936a621aec6c0ca5a383b442f2538d02ec": {
+    functionName: "publicVerify_createServerFn_handler",
+    importer: () => import("./verify.functions-B-Vj3Awb.mjs")
   },
   "a712b874dcb0ba56f949ac0ba011125a966c33b5fee3f7860a15c94f9f419f84": {
     functionName: "getActiveOrg_createServerFn_handler",
@@ -205,6 +177,42 @@ const manifest = {
     functionName: "getDocumentIssuerBrand_createServerFn_handler",
     importer: () => import("./org.functions-XuqKJiid.mjs")
   },
+  "21c9ee1831c97b4f9b584fa79f48a4f00c4d074733709bd4563c6771b1737191": {
+    functionName: "getFiscalConfig_createServerFn_handler",
+    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
+  },
+  "ae82a81d5d9218ce267825c9c94ebf3e394b99dcf6384a46776ad985c5f8f043": {
+    functionName: "updateFiscalConfig_createServerFn_handler",
+    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
+  },
+  "38a97d9c9d765dc240e136351e6fd81fcabf21702dc80ed69b3880ef8424ce6f": {
+    functionName: "onboardFiscalDeviceSecrets_createServerFn_handler",
+    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
+  },
+  "c276c80f7dd2c23a283c99a9de94889fe3c329369162f7e1ad23fba93ec1fc5e": {
+    functionName: "testDeviceConnection_createServerFn_handler",
+    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
+  },
+  "96108773d83181d2a0248149fecb5d6176770cc4ba97e7b6c019d4747c9ea510": {
+    functionName: "openFiscalDay_createServerFn_handler",
+    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
+  },
+  "193fc5971a8908606af82fcef861697128c26abaf78286d771fcf90cb9327770": {
+    functionName: "closeFiscalDay_createServerFn_handler",
+    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
+  },
+  "b73683f3df0dbdedf64cccb0f889ee0840b5683df33bbd67f4e60b523aa55a00": {
+    functionName: "listFiscalDays_createServerFn_handler",
+    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
+  },
+  "ccfaa7b3e8430b8438e213dfaf47a4ba9469d265ffde5307bb6dfe41ac9d2a6c": {
+    functionName: "submitInvoiceToZimra_createServerFn_handler",
+    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
+  },
+  "8071501d4737b90b81697bc956d93debcb5ebaaa4a88a9cab55afea92c40ee50": {
+    functionName: "getCurrentFiscalDay_createServerFn_handler",
+    importer: () => import("./fiscal.functions-JplFEU0w.mjs")
+  },
   "30bf6b89af29e3b571a688483b15fef5a113de06e9ceb35278995eea8dbbfc73": {
     functionName: "getNextDocumentNumber_createServerFn_handler",
     importer: () => import("./documents.functions-De8C4WTu.mjs")
@@ -216,14 +224,6 @@ const manifest = {
   "076f0d27c3d7b1fba7365afd1647231a0b13d6f0dd851a947be0c6d6c54fdc74": {
     functionName: "createDocument_createServerFn_handler",
     importer: () => import("./documents.functions-De8C4WTu.mjs")
-  },
-  "62aee870b7d352bb450ac12ee2012d64454b03b21e0c3fb64dc9fcd5484a053d": {
-    functionName: "issueVerifyToken_createServerFn_handler",
-    importer: () => import("./verify.functions-B-Vj3Awb.mjs")
-  },
-  "e95f2d768f72026d754fdf5fc3e00d936a621aec6c0ca5a383b442f2538d02ec": {
-    functionName: "publicVerify_createServerFn_handler",
-    importer: () => import("./verify.functions-B-Vj3Awb.mjs")
   }
 };
 async function getServerFnById(id, access) {

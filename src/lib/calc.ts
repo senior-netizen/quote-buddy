@@ -1,3 +1,5 @@
+import { formatCurrency } from "./currencies";
+
 export type LineItem = {
   description: string;
   quantity: number;
@@ -19,12 +21,9 @@ export function computeTotals(items: LineItem[], taxRate: number, discount: numb
   return { subtotal, tax_amount, total };
 }
 
+/** Formats a monetary value. Handles standard ISO codes and newer ones like ZWG. */
 export function formatMoney(n: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(Number(n) || 0);
+  return formatCurrency(n, currency);
 }
 
 export function formatDate(d: string | Date): string {

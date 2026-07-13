@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Plus, ArrowLeft } from "lucide-react";
 import { computeTotals, formatMoney, rowTotal, type LineItem } from "@/lib/calc";
 import { getDocumentTypeLabel, getDueDateLabel, type DocumentType } from "@/lib/docTypes";
+import { useActiveOrg } from "@/lib/org";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/documents/$id/edit")({ component: Page });
@@ -31,6 +32,8 @@ type ClientRow = { id: string; company_name: string };
 function Editor() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const { data: activeOrg } = useActiveOrg();
+  const currency = activeOrg?.profile.currency || "USD";
 
   const [docNumber, setDocNumber] = useState("");
   const [issueDate, setIssueDate] = useState("");

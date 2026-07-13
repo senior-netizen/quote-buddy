@@ -7,6 +7,7 @@ import { defineConfig } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 
 const isVercel = process.env.DEPLOY_TARGET === "vercel" || !!process.env.VERCEL;
+const isCloudflare = process.env.DEPLOY_TARGET === "cloudflare";
 
 export default defineConfig({
   plugins: [
@@ -14,8 +15,8 @@ export default defineConfig({
     viteReact(),
     tailwindcss(),
     tsConfigPaths(),
-    nitro({ preset: "vercel" }),
-    ...(!isVercel ? [cloudflare()] : []),
+    nitro(),
+    ...(isCloudflare ? [cloudflare()] : []),
   ],
   resolve: {
     alias: {
