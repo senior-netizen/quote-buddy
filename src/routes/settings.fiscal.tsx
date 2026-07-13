@@ -219,8 +219,8 @@ function FiscalSettings() {
       { label: "Device ID", status: compareText(form.device_id, expected.device_id), current: form.device_id || "—", expected: expected.device_id || "—" },
       { label: "Activation key presence", status: expected.has_activation_key === null ? "not_checked" as const : Boolean(config?.has_activation_key) === expected.has_activation_key ? "match" as const : "mismatch" as const, current: config?.has_activation_key ? "Saved" : "Not saved", expected: expected.has_activation_key === null ? "—" : expected.has_activation_key ? "Should be saved" : "Should be absent" },
       { label: "Device address", status: compareText(config?.device_address, expected.device_address), current: config?.device_address || "Not saved in fiscal settings", expected: expected.device_address || "—" },
-      { label: "Device model name", status: compareText(form.device_model, expected.device_model), current: form.device_model || "—", expected: expected.device_model || "—" },
-      { label: "Device model version", status: compareText(config?.device_model_version, expected.device_model_version), current: config?.device_model_version || "Not saved in fiscal settings", expected: expected.device_model_version || "—" },
+      { label: "Device model name", status: compareText(form.device_model_name, expected.device_model), current: form.device_model_name || "—", expected: expected.device_model || "—" },
+      { label: "Device model version", status: compareText(form.device_model_version, expected.device_model_version), current: form.device_model_version || "Not saved in fiscal settings", expected: expected.device_model_version || "—" },
     ];
     return rows.filter((row) => row.status !== "not_checked");
   }, [config, expected, form]);
@@ -310,8 +310,8 @@ function FiscalSettings() {
           <div>
             <Label>Device Model</Label>
             <Input
-              value={form.device_model}
-              onChange={(e) => setForm((f) => ({ ...f, device_model: e.target.value }))}
+              value={form.device_model_name}
+              onChange={(e) => setForm((f) => ({ ...f, device_model_name: e.target.value }))}
             />
           </div>
           <div className="sm:col-span-2">

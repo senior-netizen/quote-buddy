@@ -124,7 +124,7 @@ export const Route = createFileRoute("/api/documents/$year/$type/$id")({
 
         // Build verify URL (signed, matches client behaviour)
         const canonical: CanonicalDoc = {
-          doc_type: doc.doc_type,
+          doc_type: doc.doc_type as CanonicalDoc["doc_type"],
           doc_number: doc.doc_number,
           issue_date: doc.issue_date,
           due_date: doc.due_date,
@@ -143,7 +143,7 @@ export const Route = createFileRoute("/api/documents/$year/$type/$id")({
         const verifyUrl = `${origin}/verify/${doc.id}?sig=${encodeURIComponent(sig)}&h=${hash}`;
 
         const docForPdf: DocForPdf = {
-          doc_type: doc.doc_type,
+          doc_type: doc.doc_type as DocForPdf["doc_type"],
           doc_number: doc.doc_number,
           issue_date: doc.issue_date,
           due_date: doc.due_date,

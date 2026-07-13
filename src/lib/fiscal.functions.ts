@@ -101,8 +101,6 @@ export type FiscalConfig = {
   has_certificate: boolean;
   has_private_key: boolean;
   has_activation_key: boolean;
-  device_address: string | null;
-  device_model_version: string | null;
   device_operating_mode: string;
   last_fiscal_day_no: number | null;
   last_receipt_global_no: number;
@@ -273,14 +271,14 @@ function firstNumber(record: Record<string, unknown>, keys: string[]): number | 
 function configuredTaxes(config: FdmsConfig): FdmsTaxConfig[] {
   return findConfigArray(config, TAX_CONFIG_ARRAY_KEYS)
     .map(asRecord)
-    .filter((tax): tax is Record<string, unknown> => Boolean(tax))
-    .map((tax) => {
+    .flatMap((tax): FdmsTaxConfig[] => {
+      if (!tax) return [];
       const taxCode = firstString(tax, ["taxCode", "code", "taxID", "taxId", "id"]);
       const taxPercent = firstNumber(tax, ["taxPercent", "taxPercentage", "taxRate", "rate", "percent"]);
       const taxID = firstNumber(tax, ["taxID", "taxId", "id"]);
-      return taxCode && taxPercent !== null ? { taxCode, taxPercent, taxID: taxID ?? undefined } : null;
-    })
-    .filter((tax): tax is FdmsTaxConfig => Boolean(tax));
+      if (!taxCode || taxPercent === null) return [];
+      return [{ taxCode, taxPercent, taxID: taxID ?? undefined }];
+    });
 }
 
 function configuredMoneyTypeCodes(config: FdmsConfig): Set<string> {

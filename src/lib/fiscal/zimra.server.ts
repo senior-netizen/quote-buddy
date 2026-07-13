@@ -189,7 +189,7 @@ function isNodeRuntime(): boolean {
 async function nodeMtlsFetch(
   url: string,
   init: RequestInit,
-  device: FdmsDevice & { certificatePem: string; privateKeyPem: string },
+  device: FdmsDevice,
   caCertPem: string,
 ) {
   const { createPrivateKey, X509Certificate } = await import("node:crypto");
@@ -200,8 +200,16 @@ async function nodeMtlsFetch(
       "FDMS_CA_CERT_MISSING",
     );
   }
+  const certificatePem = device.certificatePem;
+  const privateKeyPem = device.privateKeyPem;
+  if (!certificatePem || !privateKeyPem) {
+    return mtlsErrorResponseWithCause(
+      "The configured FDMS client certificate or private key is missing.",
+      "FDMS_CLIENT_CERT_OR_KEY_MISSING",
+    );
+  }
   try {
-    createPrivateKey(device.privateKeyPem);
+    createPrivateKey(privateKeyPem);
   } catch (error) {
     return mtlsErrorResponseWithCause(
       "The configured FDMS private key is invalid. Provide a valid PEM private key or rerun certificate provisioning.",
@@ -210,7 +218,7 @@ async function nodeMtlsFetch(
     );
   }
   try {
-    const certificate = new X509Certificate(device.certificatePem);
+    const certificate = new X509Certificate(certificatePem);
     if (Date.parse(certificate.validTo) <= Date.now()) {
       return mtlsErrorResponseWithCause(
         `The configured FDMS client certificate expired on ${certificate.validTo}. Rerun certificate provisioning before making FDMS requests.`,
@@ -231,9 +239,9 @@ async function nodeMtlsFetch(
       {
         method: init.method ?? "GET",
         headers,
-        cert: device.certificatePem,
-        key: device.privateKeyPem,
-        ca: caPem,
+        cert: certificatePem,
+        key: privateKeyPem,
+        ca: caCertPem,
       },
       (res) => {
         const chunks: Buffer[] = [];
@@ -357,7 +365,7 @@ async function fdmsFetch(
     headers.set("Authorization", `Bearer ${device.activationKey}`);
   }
   try {
-    return await transport.fetch(url, { ...init, headers });
+    return await transport.transport.fetch(url, { ...init, headers });
   } catch (error) {
     return mtlsErrorResponseWithCause(
       error instanceof Error

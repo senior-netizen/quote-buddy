@@ -10,7 +10,7 @@ const isVercel = process.env.DEPLOY_TARGET === "vercel" || !!process.env.VERCEL;
 
 export default defineConfig({
   plugins: [
-    tanstackStart(isVercel ? { target: "vercel" } : {}),
+    tanstackStart(),
     viteReact(),
     tailwindcss(),
     tsConfigPaths(),

@@ -309,7 +309,11 @@ export class CertificateManager {
       .single();
     if (error) throw new Error(error.message);
 
-    await supabaseAdmin.from("certificate_history").insert({
+    await (supabaseAdmin as unknown as {
+      from: (relation: string) => {
+        insert: (row: Record<string, unknown>) => { error?: { message: string } | null };
+      };
+    }).from("certificate_history").insert({
       org_id: input.orgId,
       device_id: input.deviceUuid,
       certificate_id: certificateId,
@@ -330,7 +334,11 @@ export class CertificateManager {
 
   async recordRenewalDue(input: { orgId: string; deviceUuid: string; certificateId: string; reason?: string }) {
     const supabaseAdmin = await this.loadSupabaseAdmin();
-    const { error } = await supabaseAdmin.from("certificate_history").insert({
+    const { error } = await (supabaseAdmin as unknown as {
+      from: (relation: string) => {
+        insert: (row: Record<string, unknown>) => { error?: { message: string } | null };
+      };
+    }).from("certificate_history").insert({
       org_id: input.orgId,
       device_id: input.deviceUuid,
       certificate_id: input.certificateId,

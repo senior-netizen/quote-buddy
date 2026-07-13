@@ -7,6 +7,11 @@ import {
   type FdmsEnv,
 } from "@/lib/fiscal/zimra.server";
 
+async function sha256Hex(value: string) {
+  const { createHash } = await import("node:crypto");
+  return createHash("sha256").update(value).digest("hex");
+}
+
 export type TaxpayerVerificationInput = {
   env: FdmsEnv;
   taxpayerTin: string;
@@ -51,7 +56,11 @@ export class FiscalDeviceService {
     const deviceUuid = randomUUID();
     const { encryptFiscalSecret } = await import("@/lib/fiscal/secretStorage");
     const encryptedActivationKey = await encryptFiscalSecret(activationKey);
-    const { error } = await supabaseAdmin.from("devices").insert({
+    const { error } = await (supabaseAdmin as unknown as {
+      from: (relation: string) => {
+        insert: (row: Record<string, unknown>) => { error?: { message: string } | null };
+      };
+    }).from("devices").insert({
       id: deviceUuid,
       org_id: input.orgId,
       environment: input.env,
@@ -87,7 +96,11 @@ export class FiscalDeviceService {
 
     const { encryptFiscalSecret } = await import("@/lib/fiscal/secretStorage");
     const encryptedPrivateKey = await encryptFiscalSecret(csr.privateKeyPem);
-    const { error: keyError } = await supabaseAdmin.from("device_keys").insert({
+    const { error: keyError } = await (supabaseAdmin as unknown as {
+      from: (relation: string) => {
+        insert: (row: Record<string, unknown>) => { error?: { message: string } | null };
+      };
+    }).from("device_keys").insert({
       org_id: input.orgId,
       device_id: input.deviceUuid,
       key_algorithm: csr.keyAlgorithm,

@@ -86,7 +86,7 @@ function Documents() {
     const brand = await profileToBrand(activeOrg.profile);
 
     const docForPdf: DocForPdf = {
-      doc_type: doc.doc_type,
+      doc_type: doc.doc_type as DocForPdf["doc_type"],
       doc_number: doc.doc_number,
       issue_date: doc.issue_date,
       due_date: doc.due_date,
