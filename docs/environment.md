@@ -14,6 +14,10 @@ Find these in your Supabase dashboard under **Project Settings > API**.
 | `SUPABASE_PUBLISHABLE_KEY` | Publishable key, or anon public key if your project still labels it that way | Server-side user-authenticated Supabase requests | Safe to expose, but still configure it in server environment variables. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role / secret key | Server admin Supabase client and verification signing | Keep secret. Never expose this with a `VITE_` prefix. |
 
+## Server deployment/runtime checklist
+
+Before deploying server routes/functions, configure `SUPABASE_URL` in the server runtime environment and configure at least one publishable auth key: `SUPABASE_PUBLISHABLE_KEY` or `VITE_SUPABASE_PUBLISHABLE_KEY`. On Vercel, set these in the project environment variables for the relevant deployment targets. On Cloudflare Workers, add them as deployment secrets with `wrangler secret put` or through the Cloudflare dashboard.
+
 ## App and email values
 
 These do not come from Supabase, but the app expects them for invitation emails.

@@ -13,10 +13,32 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     const SUPABASE_AUTH_KEY =
       process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-    if (!SUPABASE_URL || !SUPABASE_AUTH_KEY) {
+    const missingSupabaseAuthConfig = [
+      ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
+      ...(!SUPABASE_AUTH_KEY
+        ? ['SUPABASE_PUBLISHABLE_KEY', 'VITE_SUPABASE_PUBLISHABLE_KEY']
+        : []),
+    ];
+
+    if (missingSupabaseAuthConfig.length > 0) {
+      console.error(
+        'Missing Supabase server environment variables:',
+        missingSupabaseAuthConfig.join(', ')
+      );
+
       throw new Response(
-        'Missing Supabase server environment variables. Ensure SUPABASE_URL and either SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_PUBLISHABLE_KEY are set for the server runtime.',
-        { status: 500 }
+        JSON.stringify({
+          error: {
+            code: 'SUPABASE_AUTH_CONFIG_MISSING',
+            message: 'Server authentication is temporarily unavailable.',
+          },
+        }),
+        {
+          status: 500,
+          headers: {
+            'content-type': 'application/json',
+          },
+        }
       );
     }
     
