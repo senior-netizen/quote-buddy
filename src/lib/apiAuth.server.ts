@@ -42,20 +42,32 @@ export async function authenticateApiRequest(request: Request): Promise<ApiAuthR
     return { ok: false, status: 401, message: "Invalid API key format" };
   }
   const hash = await sha256Hex(token);
-  const { data, error } = await supabaseAdmin
-    .from("api_keys")
-    .select("id, org_id, revoked_at")
-    .eq("key_hash", hash)
-    .maybeSingle();
-  if (error || !data) return { ok: false, status: 401, message: "Invalid API key" };
-  if (data.revoked_at) return { ok: false, status: 401, message: "API key revoked" };
-  // fire-and-forget last-used update
-  supabaseAdmin
-    .from("api_keys")
-    .update({ last_used_at: new Date().toISOString() })
-    .eq("id", data.id)
-    .then(() => {});
-  return { ok: true, orgId: data.org_id, keyId: data.id };
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("api_keys")
+      .select("id, org_id, revoked_at")
+      .eq("key_hash", hash)
+      .maybeSingle();
+    if (error || !data) return { ok: false, status: 401, message: "Invalid API key" };
+    if (data.revoked_at) return { ok: false, status: 401, message: "API key revoked" };
+    // fire-and-forget last-used update
+    supabaseAdmin
+      .from("api_keys")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .then(() => {})
+      .catch((error) => {
+        console.error("Failed to update API key last_used_at", {
+          message: error instanceof Error ? error.message : String(error),
+        });
+      });
+    return { ok: true, orgId: data.org_id, keyId: data.id };
+  } catch (error) {
+    console.error("API authentication failed unexpectedly", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return { ok: false, status: 500, message: "API authentication is temporarily unavailable" };
+  }
 }
 
 export function jsonResponse(body: unknown, init: ResponseInit = {}) {
