@@ -5,6 +5,9 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
+export const SERVER_CONFIG_MISSING_CODE = "SERVER_CONFIG_MISSING";
+export const SERVER_CONFIG_MISSING_MESSAGE = "This service is temporarily unavailable.";
+
 export class SupabaseServerConfigError extends Error {
   constructor(public readonly missingVariables: string[]) {
     super("Missing Supabase server environment variables.");
@@ -16,6 +19,31 @@ export function isSupabaseServerConfigError(error: unknown): error is SupabaseSe
   return error instanceof SupabaseServerConfigError;
 }
 
+export function logMissingServerConfig(missingVariables: string[], context: string) {
+  console.error("Missing required server environment variables", {
+    context,
+    missingVariables,
+  });
+}
+
+export function serverConfigMissingJsonResponse(init: ResponseInit = {}) {
+  return new Response(
+    JSON.stringify({
+      error: {
+        code: SERVER_CONFIG_MISSING_CODE,
+      },
+    }),
+    {
+      ...init,
+      status: init.status ?? 500,
+      headers: {
+        "content-type": "application/json",
+        ...(init.headers ?? {}),
+      },
+    }
+  );
+}
+
 function createSupabaseAdminClient() {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -25,6 +53,7 @@ function createSupabaseAdminClient() {
   if (!SUPABASE_SERVICE_ROLE_KEY) missingVariables.push("SUPABASE_SERVICE_ROLE_KEY");
 
   if (missingVariables.length > 0) {
+    logMissingServerConfig(missingVariables, "supabase-admin-client");
     throw new SupabaseServerConfigError(missingVariables);
   }
 

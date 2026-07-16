@@ -3,6 +3,7 @@ import { createMiddleware } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './types'
+import { logMissingServerConfig, serverConfigMissingJsonResponse } from './client.server'
 
 
 
@@ -21,25 +22,9 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     ];
 
     if (missingSupabaseAuthConfig.length > 0) {
-      console.error(
-        'Missing Supabase server environment variables:',
-        missingSupabaseAuthConfig.join(', ')
-      );
+      logMissingServerConfig(missingSupabaseAuthConfig, 'supabase-auth-middleware');
 
-      throw new Response(
-        JSON.stringify({
-          error: {
-            code: 'SUPABASE_AUTH_CONFIG_MISSING',
-            message: 'Server authentication is temporarily unavailable.',
-          },
-        }),
-        {
-          status: 500,
-          headers: {
-            'content-type': 'application/json',
-          },
-        }
-      );
+      throw serverConfigMissingJsonResponse();
     }
     
     const request = getRequest();

@@ -3,6 +3,10 @@ import { routeTree } from "./routeTree.gen";
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
+  const isMissingServerConfig = error.name === "SupabaseServerConfigError";
+  const userMessage = isMissingServerConfig
+    ? "This service is temporarily unavailable."
+    : "An unexpected error occurred. Please try again.";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -25,9 +29,9 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Something went wrong</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          An unexpected error occurred. Please try again.
+          {userMessage}
         </p>
-        {import.meta.env.DEV && error.message && (
+        {import.meta.env.DEV && error.message && !isMissingServerConfig && (
           <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-left font-mono text-xs text-destructive">
             {error.message}
           </pre>

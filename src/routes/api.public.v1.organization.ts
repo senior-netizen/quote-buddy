@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/public/v1/organization")({
       OPTIONS: async () => optionsResponse(),
       GET: async ({ request }) => {
         const auth = await authenticateApiRequest(request);
-        if (!auth.ok) return errorResponse(auth.status, auth.message);
+        if (!auth.ok) return errorResponse(auth.status, auth.message, auth.code);
         const { data, error } = await supabaseAdmin
           .from("organization_profiles")
           .select("org_id, name, short_name, address, phone, emails, website, currency, default_tax_rate, tin, praz, duns, registration, logo_url")

@@ -21,7 +21,7 @@ export const Route = createFileRoute("/api/public/v1/clients/$id")({
       OPTIONS: async () => optionsResponse(),
       GET: async ({ request, params }) => {
         const auth = await authenticateApiRequest(request);
-        if (!auth.ok) return errorResponse(auth.status, auth.message);
+        if (!auth.ok) return errorResponse(auth.status, auth.message, auth.code);
         const { data, error } = await supabaseAdmin
           .from("clients")
           .select("id, company_name, email, phone, address, created_at, updated_at")
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/public/v1/clients/$id")({
       },
       PATCH: async ({ request, params }) => {
         const auth = await authenticateApiRequest(request);
-        if (!auth.ok) return errorResponse(auth.status, auth.message);
+        if (!auth.ok) return errorResponse(auth.status, auth.message, auth.code);
         let body: unknown;
         try {
           body = await request.json();
@@ -56,7 +56,7 @@ export const Route = createFileRoute("/api/public/v1/clients/$id")({
       },
       DELETE: async ({ request, params }) => {
         const auth = await authenticateApiRequest(request);
-        if (!auth.ok) return errorResponse(auth.status, auth.message);
+        if (!auth.ok) return errorResponse(auth.status, auth.message, auth.code);
         const { error, count } = await supabaseAdmin
           .from("clients")
           .delete({ count: "exact" })
