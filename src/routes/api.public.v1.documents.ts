@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/public/v1/documents")({
       OPTIONS: async () => optionsResponse(),
       GET: async ({ request }) => {
         const auth = await authenticateApiRequest(request);
-        if (!auth.ok) return errorResponse(auth.status, auth.message);
+        if (!auth.ok) return errorResponse(auth.status, auth.message, auth.code);
         const url = new URL(request.url);
         const limit = Math.min(Number(url.searchParams.get("limit") ?? 50) || 50, 200);
         const offset = Math.max(Number(url.searchParams.get("offset") ?? 0) || 0, 0);
@@ -52,7 +52,7 @@ export const Route = createFileRoute("/api/public/v1/documents")({
       },
       POST: async ({ request }) => {
         const auth = await authenticateApiRequest(request);
-        if (!auth.ok) return errorResponse(auth.status, auth.message);
+        if (!auth.ok) return errorResponse(auth.status, auth.message, auth.code);
         let body: unknown;
         try {
           body = await request.json();

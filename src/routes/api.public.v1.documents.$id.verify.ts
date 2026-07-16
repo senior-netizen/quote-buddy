@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/public/v1/documents/$id/verify")({
       OPTIONS: async () => optionsResponse(),
       GET: async ({ request, params }) => {
         const auth = await authenticateApiRequest(request);
-        if (!auth.ok) return errorResponse(auth.status, auth.message);
+        if (!auth.ok) return errorResponse(auth.status, auth.message, auth.code);
         const { data: doc, error } = await supabaseAdmin
           .from("documents")
           .select("id, doc_type, doc_number, issue_date, due_date, line_items, tax_rate, discount, subtotal, tax_amount, total, notes, client:clients(company_name, email)")

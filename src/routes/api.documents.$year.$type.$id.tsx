@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  logMissingServerConfig,
+  serverConfigMissingJsonResponse,
+  supabaseAdmin,
+} from "@/integrations/supabase/client.server";
 import { buildDef, buildDocPath, type DocForPdf } from "@/lib/pdfDef";
 import { computeDocHash, type CanonicalDoc } from "@/lib/docHash";
 import { signVerifyToken } from "@/lib/verifySign.server";
@@ -25,7 +29,6 @@ export const Route = createFileRoute("/api/documents/$year/$type/$id")({
         // Auth: Bearer token in Authorization header only.
         // Never accept the JWT via query string — it would leak into access
         // logs, browser history, and Referer headers.
-        const url = new URL(request.url);
         const authHeader = request.headers.get("authorization");
         const token = authHeader?.startsWith("Bearer ")
           ? authHeader.slice("Bearer ".length)
@@ -36,12 +39,22 @@ export const Route = createFileRoute("/api/documents/$year/$type/$id")({
         }
 
         const SUPABASE_URL = process.env.SUPABASE_URL;
-        const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
-        if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-          return new Response("Server misconfigured", { status: 500 });
+        const SUPABASE_PUBLISHABLE_KEY =
+          process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const missingSupabaseAuthConfig = [
+          ...(!SUPABASE_URL ? ["SUPABASE_URL"] : []),
+          ...(!SUPABASE_PUBLISHABLE_KEY
+            ? ["SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY"]
+            : []),
+        ];
+
+        if (missingSupabaseAuthConfig.length > 0) {
+          logMissingServerConfig(missingSupabaseAuthConfig, "document-pdf-route-auth-client");
+
+          return serverConfigMissingJsonResponse();
         }
 
-        const userClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+        const userClient = createClient<Database>(SUPABASE_URL!, SUPABASE_PUBLISHABLE_KEY!, {
           global: { headers: { Authorization: `Bearer ${token}` } },
           auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
         });

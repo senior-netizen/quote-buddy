@@ -1,4 +1,8 @@
-import { isSupabaseServerConfigError, supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  isSupabaseServerConfigError,
+  SERVER_CONFIG_MISSING_CODE,
+  supabaseAdmin,
+} from "@/integrations/supabase/client.server";
 
 const KEY_PREFIX = "qsk_live_";
 
@@ -29,7 +33,7 @@ export async function hashApiKey(key: string): Promise<string> {
 
 export type ApiAuthResult =
   | { ok: true; orgId: string; keyId: string }
-  | { ok: false; status: number; message: string };
+  | { ok: false; status: number; message: string; code?: string };
 
 /** Validate a Bearer API key. Returns the org_id it authorizes. */
 export async function authenticateApiRequest(request: Request): Promise<ApiAuthResult> {
@@ -67,7 +71,12 @@ export async function authenticateApiRequest(request: Request): Promise<ApiAuthR
       console.error("API service unavailable due to missing Supabase configuration", {
         missingVariables: error.missingVariables,
       });
-      return { ok: false, status: 500, message: "API service is temporarily unavailable" };
+      return {
+        ok: false,
+        status: 500,
+        message: "API service is temporarily unavailable",
+        code: SERVER_CONFIG_MISSING_CODE,
+      };
     }
 
     console.error("API authentication failed unexpectedly", {
@@ -90,8 +99,12 @@ export function jsonResponse(body: unknown, init: ResponseInit = {}) {
   });
 }
 
-export function errorResponse(status: number, message: string) {
-  return jsonResponse({ error: { status, message } }, { status });
+export function errorResponse(status: number, message: string, code?: string) {
+  if (code === SERVER_CONFIG_MISSING_CODE) {
+    return jsonResponse({ error: { code } }, { status });
+  }
+
+  return jsonResponse({ error: { status, message, ...(code ? { code } : {}) } }, { status });
 }
 
 export function optionsResponse() {

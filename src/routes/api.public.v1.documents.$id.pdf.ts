@@ -21,7 +21,7 @@ export const Route = createFileRoute("/api/public/v1/documents/$id/pdf")({
       OPTIONS: async () => optionsResponse(),
       GET: async ({ request, params }) => {
         const auth = await authenticateApiRequest(request);
-        if (!auth.ok) return errorResponse(auth.status, auth.message);
+        if (!auth.ok) return errorResponse(auth.status, auth.message, auth.code);
 
         const url = new URL(request.url);
         const disposition =
