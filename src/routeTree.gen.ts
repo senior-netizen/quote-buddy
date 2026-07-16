@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as FaviconDoticoRouteImport } from './routes/favicon[.]ico'
 import { Route as DevelopersRouteImport } from './routes/developers'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientsRouteImport } from './routes/clients'
@@ -55,6 +56,11 @@ const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaviconDoticoRoute = FaviconDoticoRouteImport.update({
+  id: '/favicon.ico',
+  path: '/favicon.ico',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DevelopersRoute = DevelopersRouteImport.update({
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
   '/developers': typeof DevelopersRoute
+  '/favicon.ico': typeof FaviconDoticoRoute
   '/login': typeof LoginRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRouteWithChildren
@@ -210,6 +217,7 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
   '/developers': typeof DevelopersRoute
+  '/favicon.ico': typeof FaviconDoticoRoute
   '/login': typeof LoginRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRouteWithChildren
@@ -240,6 +248,7 @@ export interface FileRoutesById {
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
   '/developers': typeof DevelopersRoute
+  '/favicon.ico': typeof FaviconDoticoRoute
   '/login': typeof LoginRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRouteWithChildren
@@ -271,6 +280,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/developers'
+    | '/favicon.ico'
     | '/login'
     | '/robots.txt'
     | '/settings'
@@ -300,6 +310,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/developers'
+    | '/favicon.ico'
     | '/login'
     | '/robots.txt'
     | '/settings'
@@ -329,6 +340,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/developers'
+    | '/favicon.ico'
     | '/login'
     | '/robots.txt'
     | '/settings'
@@ -359,6 +371,7 @@ export interface RootRouteChildren {
   ClientsRoute: typeof ClientsRoute
   DashboardRoute: typeof DashboardRoute
   DevelopersRoute: typeof DevelopersRoute
+  FaviconDoticoRoute: typeof FaviconDoticoRoute
   LoginRoute: typeof LoginRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SettingsRoute: typeof SettingsRouteWithChildren
@@ -404,6 +417,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favicon.ico': {
+      id: '/favicon.ico'
+      path: '/favicon.ico'
+      fullPath: '/favicon.ico'
+      preLoaderRoute: typeof FaviconDoticoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/developers': {
@@ -631,6 +651,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsRoute: ClientsRoute,
   DashboardRoute: DashboardRoute,
   DevelopersRoute: DevelopersRoute,
+  FaviconDoticoRoute: FaviconDoticoRoute,
   LoginRoute: LoginRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SettingsRoute: SettingsRouteWithChildren,
