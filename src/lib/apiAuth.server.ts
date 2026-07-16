@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { isSupabaseServerConfigError, supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const KEY_PREFIX = "qsk_live_";
 
@@ -63,6 +63,13 @@ export async function authenticateApiRequest(request: Request): Promise<ApiAuthR
       });
     return { ok: true, orgId: data.org_id, keyId: data.id };
   } catch (error) {
+    if (isSupabaseServerConfigError(error)) {
+      console.error("API service unavailable due to missing Supabase configuration", {
+        missingVariables: error.missingVariables,
+      });
+      return { ok: false, status: 500, message: "API service is temporarily unavailable" };
+    }
+
     console.error("API authentication failed unexpectedly", {
       message: error instanceof Error ? error.message : String(error),
     });
