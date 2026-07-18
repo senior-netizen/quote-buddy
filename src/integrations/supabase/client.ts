@@ -20,6 +20,30 @@ export function isSupabaseClientConfigError(error: unknown): error is SupabaseCl
   return error instanceof SupabaseClientConfigError;
 }
 
+// Non-throwing config check. Use this to detect missing configuration and
+// degrade gracefully (e.g. render a friendly, coded error state) instead of
+// letting the client throw and crash the surrounding component.
+export function getSupabaseClientConfig(): {
+  configured: boolean;
+  missingVariables: string[];
+} {
+  const serverEnv = typeof process !== 'undefined' ? process.env : undefined;
+  const readEnv = (...values: Array<string | undefined>) =>
+    values.find((value) => value && value.trim().length > 0);
+
+  const SUPABASE_URL = readEnv(import.meta.env.VITE_SUPABASE_URL, serverEnv?.SUPABASE_URL);
+  const SUPABASE_PUBLISHABLE_KEY = readEnv(
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    serverEnv?.SUPABASE_PUBLISHABLE_KEY
+  );
+
+  const missingVariables: string[] = [];
+  if (!SUPABASE_URL) missingVariables.push('VITE_SUPABASE_URL');
+  if (!SUPABASE_PUBLISHABLE_KEY) missingVariables.push('VITE_SUPABASE_PUBLISHABLE_KEY');
+
+  return { configured: missingVariables.length === 0, missingVariables };
+}
+
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering). Guard access to
