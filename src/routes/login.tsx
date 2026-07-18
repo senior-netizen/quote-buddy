@@ -24,7 +24,7 @@ export const Route = createFileRoute("/login")({
 function Login() {
   const { redirect } = Route.useSearch();
   const redirectTo = redirect ?? "/dashboard";
-  const { user, signIn, signUp, loading } = useAuth();
+  const { user, signIn, signUp, loading, configError } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -65,6 +65,20 @@ function Login() {
           {mode === "signin" ? "Welcome back." : "Get started in seconds."}
         </p>
 
+        {configError && (
+          <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-left">
+            <p className="text-sm font-medium text-foreground">
+              Authentication is temporarily unavailable
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              The sign-in service isn&apos;t configured yet. Please try again later.
+            </p>
+            <p className="mt-2 font-mono text-xs text-muted-foreground">
+              Error code: {configError.code}
+            </p>
+          </div>
+        )}
+
         <form onSubmit={submit} className="mt-8 space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="email" className="text-xs">Email</Label>
@@ -74,7 +88,7 @@ function Login() {
             <Label htmlFor="password" className="text-xs">Password</Label>
             <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          <Button type="submit" disabled={busy} className="w-full rounded-full">
+          <Button type="submit" disabled={busy || !!configError} className="w-full rounded-full">
             {busy ? "…" : mode === "signin" ? "Sign in" : "Create account"}
           </Button>
         </form>
