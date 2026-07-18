@@ -2,6 +2,24 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+export const CLIENT_CONFIG_MISSING_CODE = 'CLIENT_CONFIG_MISSING';
+export const CLIENT_CONFIG_MISSING_MESSAGE = 'This service is temporarily unavailable.';
+
+export class SupabaseClientConfigError extends Error {
+  readonly code = CLIENT_CONFIG_MISSING_CODE;
+  constructor(public readonly missingVariables: string[]) {
+    super(
+      `Missing Supabase browser environment variables: ${missingVariables.join(', ')}. ` +
+        'Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (or the SUPABASE_ prefixed versions for SSR).'
+    );
+    this.name = 'SupabaseClientConfigError';
+  }
+}
+
+export function isSupabaseClientConfigError(error: unknown): error is SupabaseClientConfigError {
+  return error instanceof SupabaseClientConfigError;
+}
+
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering). Guard access to
@@ -16,10 +34,16 @@ function createSupabaseClient() {
     serverEnv?.SUPABASE_PUBLISHABLE_KEY
   );
 
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-    throw new Error(
-      'Missing Supabase environment variables. Ensure SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or VITE_ prefixed versions) are set in your .env file.'
-    );
+  const missingVariables: string[] = [];
+  if (!SUPABASE_URL) missingVariables.push('VITE_SUPABASE_URL');
+  if (!SUPABASE_PUBLISHABLE_KEY) missingVariables.push('VITE_SUPABASE_PUBLISHABLE_KEY');
+
+  if (missingVariables.length > 0) {
+    console.error('Missing required browser environment variables', {
+      context: 'supabase-browser-client',
+      missingVariables,
+    });
+    throw new SupabaseClientConfigError(missingVariables);
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {

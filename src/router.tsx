@@ -1,10 +1,17 @@
 import { createRouter, useRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
+const CONFIG_ERROR_CODES: Record<string, string> = {
+  SupabaseServerConfigError: "SERVER_CONFIG_MISSING",
+  SupabaseClientConfigError: "CLIENT_CONFIG_MISSING",
+};
+
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
-  const isMissingServerConfig = error.name === "SupabaseServerConfigError";
-  const userMessage = isMissingServerConfig
+  const errorCode =
+    (error as { code?: string }).code ?? CONFIG_ERROR_CODES[error.name];
+  const isMissingConfig = Boolean(CONFIG_ERROR_CODES[error.name]);
+  const userMessage = isMissingConfig
     ? "This service is temporarily unavailable."
     : "An unexpected error occurred. Please try again.";
 
@@ -31,7 +38,12 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
         <p className="mt-2 text-sm text-muted-foreground">
           {userMessage}
         </p>
-        {import.meta.env.DEV && error.message && !isMissingServerConfig && (
+        {errorCode && (
+          <p className="mt-2 font-mono text-xs text-muted-foreground">
+            Error code: {errorCode}
+          </p>
+        )}
+        {import.meta.env.DEV && error.message && !isMissingConfig && (
           <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-left font-mono text-xs text-destructive">
             {error.message}
           </pre>
