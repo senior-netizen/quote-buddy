@@ -57,7 +57,7 @@ function createSupabaseAdminClient() {
     throw new SupabaseServerConfigError(missingVariables);
   }
 
-  return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  return createClient<Database>(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, {
     auth: {
       storage: undefined,
       persistSession: false,

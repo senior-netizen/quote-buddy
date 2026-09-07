@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788763297353,
+      "tag": "0000_fiscal_device_and_receipt_tables",
+      "breakpoints": true
+    }
+  ]
+}
