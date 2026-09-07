@@ -71,7 +71,7 @@ function createSupabaseClient() {
     throw new SupabaseClientConfigError(missingVariables);
   }
 
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  return createClient<Database>(SUPABASE_URL!, SUPABASE_PUBLISHABLE_KEY!, {
     auth: {
       storage: brokeredPreviewStorage(),
       persistSession: true,
