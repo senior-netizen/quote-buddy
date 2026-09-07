@@ -9,68 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as FaviconDoticoRouteImport } from './routes/favicon[.]ico'
-import { Route as DevelopersRouteImport } from './routes/developers'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ClientsRouteImport } from './routes/clients'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DevelopersRouteImport } from './routes/developers'
+import { Route as FaviconDoticoRouteImport } from './routes/favicon[.]ico'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
-import { Route as VerifyIdRouteImport } from './routes/verify.$id'
-import { Route as SettingsTeamRouteImport } from './routes/settings.team'
-import { Route as SettingsOrganizationRouteImport } from './routes/settings.organization'
-import { Route as SettingsFiscalRouteImport } from './routes/settings.fiscal'
-import { Route as SettingsApiRouteImport } from './routes/settings.api'
-import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as DocumentsNewRouteImport } from './routes/documents.new'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as SettingsApiRouteImport } from './routes/settings.api'
+import { Route as SettingsFiscalRouteImport } from './routes/settings.fiscal'
+import { Route as SettingsOrganizationRouteImport } from './routes/settings.organization'
+import { Route as SettingsTeamRouteImport } from './routes/settings.team'
+import { Route as VerifyIdRouteImport } from './routes/verify.$id'
 import { Route as DocumentsIdIndexRouteImport } from './routes/documents.$id.index'
 import { Route as DocumentsIdEditRouteImport } from './routes/documents.$id.edit'
-import { Route as ApiPublicV1OrganizationRouteImport } from './routes/api.public.v1.organization'
-import { Route as ApiPublicV1OpenapiDotjsonRouteImport } from './routes/api.public.v1.openapi[.]json'
-import { Route as ApiPublicV1DocumentsRouteImport } from './routes/api.public.v1.documents'
 import { Route as ApiPublicV1ClientsRouteImport } from './routes/api.public.v1.clients'
-import { Route as ApiPublicV1DocumentsIdRouteImport } from './routes/api.public.v1.documents.$id'
-import { Route as ApiPublicV1ClientsIdRouteImport } from './routes/api.public.v1.clients.$id'
+import { Route as ApiPublicV1DocumentsRouteImport } from './routes/api.public.v1.documents'
+import { Route as ApiPublicV1OpenapiDotjsonRouteImport } from './routes/api.public.v1.openapi[.]json'
+import { Route as ApiPublicV1OrganizationRouteImport } from './routes/api.public.v1.organization'
 import { Route as ApiDocumentsYearTypeIdRouteImport } from './routes/api.documents.$year.$type.$id'
-import { Route as ApiPublicV1DocumentsIdVerifyRouteImport } from './routes/api.public.v1.documents.$id.verify'
+import { Route as ApiPublicV1ClientsIdRouteImport } from './routes/api.public.v1.clients.$id'
+import { Route as ApiPublicV1DocumentsIdRouteImport } from './routes/api.public.v1.documents.$id'
 import { Route as ApiPublicV1DocumentsIdPdfRouteImport } from './routes/api.public.v1.documents.$id.pdf'
+import { Route as ApiPublicV1DocumentsIdVerifyRouteImport } from './routes/api.public.v1.documents.$id.verify'
 
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
-  id: '/robots.txt',
-  path: '/robots.txt',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FaviconDoticoRoute = FaviconDoticoRouteImport.update({
-  id: '/favicon.ico',
-  path: '/favicon.ico',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DevelopersRoute = DevelopersRouteImport.update({
-  id: '/developers',
-  path: '/developers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientsRoute = ClientsRouteImport.update({
@@ -78,9 +48,39 @@ const ClientsRoute = ClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevelopersRoute = DevelopersRouteImport.update({
+  id: '/developers',
+  path: '/developers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaviconDoticoRoute = FaviconDoticoRouteImport.update({
+  id: '/favicon.ico',
+  path: '/favicon.ico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsIndexRoute = DocumentsIndexRouteImport.update({
@@ -88,19 +88,19 @@ const DocumentsIndexRoute = DocumentsIndexRouteImport.update({
   path: '/documents/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VerifyIdRoute = VerifyIdRouteImport.update({
-  id: '/verify/$id',
-  path: '/verify/$id',
+const DocumentsNewRoute = DocumentsNewRouteImport.update({
+  id: '/documents/new',
+  path: '/documents/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsTeamRoute = SettingsTeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => SettingsRoute,
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsOrganizationRoute = SettingsOrganizationRouteImport.update({
-  id: '/organization',
-  path: '/organization',
+const SettingsApiRoute = SettingsApiRouteImport.update({
+  id: '/api',
+  path: '/api',
   getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsFiscalRoute = SettingsFiscalRouteImport.update({
@@ -108,19 +108,19 @@ const SettingsFiscalRoute = SettingsFiscalRouteImport.update({
   path: '/fiscal',
   getParentRoute: () => SettingsRoute,
 } as any)
-const SettingsApiRoute = SettingsApiRouteImport.update({
-  id: '/api',
-  path: '/api',
+const SettingsOrganizationRoute = SettingsOrganizationRouteImport.update({
+  id: '/organization',
+  path: '/organization',
   getParentRoute: () => SettingsRoute,
 } as any)
-const InviteTokenRoute = InviteTokenRouteImport.update({
-  id: '/invite/$token',
-  path: '/invite/$token',
-  getParentRoute: () => rootRouteImport,
+const SettingsTeamRoute = SettingsTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => SettingsRoute,
 } as any)
-const DocumentsNewRoute = DocumentsNewRouteImport.update({
-  id: '/documents/new',
-  path: '/documents/new',
+const VerifyIdRoute = VerifyIdRouteImport.update({
+  id: '/verify/$id',
+  path: '/verify/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsIdIndexRoute = DocumentsIdIndexRouteImport.update({
@@ -133,9 +133,14 @@ const DocumentsIdEditRoute = DocumentsIdEditRouteImport.update({
   path: '/documents/$id/edit',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicV1OrganizationRoute = ApiPublicV1OrganizationRouteImport.update({
-  id: '/api/public/v1/organization',
-  path: '/api/public/v1/organization',
+const ApiPublicV1ClientsRoute = ApiPublicV1ClientsRouteImport.update({
+  id: '/api/public/v1/clients',
+  path: '/api/public/v1/clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1DocumentsRoute = ApiPublicV1DocumentsRouteImport.update({
+  id: '/api/public/v1/documents',
+  path: '/api/public/v1/documents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicV1OpenapiDotjsonRoute =
@@ -144,41 +149,36 @@ const ApiPublicV1OpenapiDotjsonRoute =
     path: '/api/public/v1/openapi.json',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicV1DocumentsRoute = ApiPublicV1DocumentsRouteImport.update({
-  id: '/api/public/v1/documents',
-  path: '/api/public/v1/documents',
+const ApiPublicV1OrganizationRoute = ApiPublicV1OrganizationRouteImport.update({
+  id: '/api/public/v1/organization',
+  path: '/api/public/v1/organization',
   getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicV1ClientsRoute = ApiPublicV1ClientsRouteImport.update({
-  id: '/api/public/v1/clients',
-  path: '/api/public/v1/clients',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicV1DocumentsIdRoute = ApiPublicV1DocumentsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ApiPublicV1DocumentsRoute,
-} as any)
-const ApiPublicV1ClientsIdRoute = ApiPublicV1ClientsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ApiPublicV1ClientsRoute,
 } as any)
 const ApiDocumentsYearTypeIdRoute = ApiDocumentsYearTypeIdRouteImport.update({
   id: '/api/documents/$year/$type/$id',
   path: '/api/documents/$year/$type/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicV1DocumentsIdVerifyRoute =
-  ApiPublicV1DocumentsIdVerifyRouteImport.update({
-    id: '/verify',
-    path: '/verify',
-    getParentRoute: () => ApiPublicV1DocumentsIdRoute,
-  } as any)
+const ApiPublicV1ClientsIdRoute = ApiPublicV1ClientsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiPublicV1ClientsRoute,
+} as any)
+const ApiPublicV1DocumentsIdRoute = ApiPublicV1DocumentsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiPublicV1DocumentsRoute,
+} as any)
 const ApiPublicV1DocumentsIdPdfRoute =
   ApiPublicV1DocumentsIdPdfRouteImport.update({
     id: '/pdf',
     path: '/pdf',
+    getParentRoute: () => ApiPublicV1DocumentsIdRoute,
+  } as any)
+const ApiPublicV1DocumentsIdVerifyRoute =
+  ApiPublicV1DocumentsIdVerifyRouteImport.update({
+    id: '/verify',
+    path: '/verify',
     getParentRoute: () => ApiPublicV1DocumentsIdRoute,
   } as any)
 
@@ -391,53 +391,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/robots.txt': {
-      id: '/robots.txt'
-      path: '/robots.txt'
-      fullPath: '/robots.txt'
-      preLoaderRoute: typeof RobotsDottxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/favicon.ico': {
-      id: '/favicon.ico'
-      path: '/favicon.ico'
-      fullPath: '/favicon.ico'
-      preLoaderRoute: typeof FaviconDoticoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/developers': {
-      id: '/developers'
-      path: '/developers'
-      fullPath: '/developers'
-      preLoaderRoute: typeof DevelopersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients': {
@@ -447,11 +405,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/developers': {
+      id: '/developers'
+      path: '/developers'
+      fullPath: '/developers'
+      preLoaderRoute: typeof DevelopersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favicon.ico': {
+      id: '/favicon.ico'
+      path: '/favicon.ico'
+      fullPath: '/favicon.ico'
+      preLoaderRoute: typeof FaviconDoticoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents/': {
@@ -461,25 +461,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/verify/$id': {
-      id: '/verify/$id'
-      path: '/verify/$id'
-      fullPath: '/verify/$id'
-      preLoaderRoute: typeof VerifyIdRouteImport
+    '/documents/new': {
+      id: '/documents/new'
+      path: '/documents/new'
+      fullPath: '/documents/new'
+      preLoaderRoute: typeof DocumentsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/team': {
-      id: '/settings/team'
-      path: '/team'
-      fullPath: '/settings/team'
-      preLoaderRoute: typeof SettingsTeamRouteImport
-      parentRoute: typeof SettingsRoute
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/settings/organization': {
-      id: '/settings/organization'
-      path: '/organization'
-      fullPath: '/settings/organization'
-      preLoaderRoute: typeof SettingsOrganizationRouteImport
+    '/settings/api': {
+      id: '/settings/api'
+      path: '/api'
+      fullPath: '/settings/api'
+      preLoaderRoute: typeof SettingsApiRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/fiscal': {
@@ -489,25 +489,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsFiscalRouteImport
       parentRoute: typeof SettingsRoute
     }
-    '/settings/api': {
-      id: '/settings/api'
-      path: '/api'
-      fullPath: '/settings/api'
-      preLoaderRoute: typeof SettingsApiRouteImport
+    '/settings/organization': {
+      id: '/settings/organization'
+      path: '/organization'
+      fullPath: '/settings/organization'
+      preLoaderRoute: typeof SettingsOrganizationRouteImport
       parentRoute: typeof SettingsRoute
     }
-    '/invite/$token': {
-      id: '/invite/$token'
-      path: '/invite/$token'
-      fullPath: '/invite/$token'
-      preLoaderRoute: typeof InviteTokenRouteImport
-      parentRoute: typeof rootRouteImport
+    '/settings/team': {
+      id: '/settings/team'
+      path: '/team'
+      fullPath: '/settings/team'
+      preLoaderRoute: typeof SettingsTeamRouteImport
+      parentRoute: typeof SettingsRoute
     }
-    '/documents/new': {
-      id: '/documents/new'
-      path: '/documents/new'
-      fullPath: '/documents/new'
-      preLoaderRoute: typeof DocumentsNewRouteImport
+    '/verify/$id': {
+      id: '/verify/$id'
+      path: '/verify/$id'
+      fullPath: '/verify/$id'
+      preLoaderRoute: typeof VerifyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents/$id/': {
@@ -524,18 +524,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentsIdEditRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/v1/organization': {
-      id: '/api/public/v1/organization'
-      path: '/api/public/v1/organization'
-      fullPath: '/api/public/v1/organization'
-      preLoaderRoute: typeof ApiPublicV1OrganizationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/v1/openapi.json': {
-      id: '/api/public/v1/openapi.json'
-      path: '/api/public/v1/openapi.json'
-      fullPath: '/api/public/v1/openapi.json'
-      preLoaderRoute: typeof ApiPublicV1OpenapiDotjsonRouteImport
+    '/api/public/v1/clients': {
+      id: '/api/public/v1/clients'
+      path: '/api/public/v1/clients'
+      fullPath: '/api/public/v1/clients'
+      preLoaderRoute: typeof ApiPublicV1ClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/v1/documents': {
@@ -545,26 +538,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1DocumentsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/v1/clients': {
-      id: '/api/public/v1/clients'
-      path: '/api/public/v1/clients'
-      fullPath: '/api/public/v1/clients'
-      preLoaderRoute: typeof ApiPublicV1ClientsRouteImport
+    '/api/public/v1/openapi.json': {
+      id: '/api/public/v1/openapi.json'
+      path: '/api/public/v1/openapi.json'
+      fullPath: '/api/public/v1/openapi.json'
+      preLoaderRoute: typeof ApiPublicV1OpenapiDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/v1/documents/$id': {
-      id: '/api/public/v1/documents/$id'
-      path: '/$id'
-      fullPath: '/api/public/v1/documents/$id'
-      preLoaderRoute: typeof ApiPublicV1DocumentsIdRouteImport
-      parentRoute: typeof ApiPublicV1DocumentsRoute
-    }
-    '/api/public/v1/clients/$id': {
-      id: '/api/public/v1/clients/$id'
-      path: '/$id'
-      fullPath: '/api/public/v1/clients/$id'
-      preLoaderRoute: typeof ApiPublicV1ClientsIdRouteImport
-      parentRoute: typeof ApiPublicV1ClientsRoute
+    '/api/public/v1/organization': {
+      id: '/api/public/v1/organization'
+      path: '/api/public/v1/organization'
+      fullPath: '/api/public/v1/organization'
+      preLoaderRoute: typeof ApiPublicV1OrganizationRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/documents/$year/$type/$id': {
       id: '/api/documents/$year/$type/$id'
@@ -573,18 +559,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDocumentsYearTypeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/v1/documents/$id/verify': {
-      id: '/api/public/v1/documents/$id/verify'
-      path: '/verify'
-      fullPath: '/api/public/v1/documents/$id/verify'
-      preLoaderRoute: typeof ApiPublicV1DocumentsIdVerifyRouteImport
-      parentRoute: typeof ApiPublicV1DocumentsIdRoute
+    '/api/public/v1/clients/$id': {
+      id: '/api/public/v1/clients/$id'
+      path: '/$id'
+      fullPath: '/api/public/v1/clients/$id'
+      preLoaderRoute: typeof ApiPublicV1ClientsIdRouteImport
+      parentRoute: typeof ApiPublicV1ClientsRoute
+    }
+    '/api/public/v1/documents/$id': {
+      id: '/api/public/v1/documents/$id'
+      path: '/$id'
+      fullPath: '/api/public/v1/documents/$id'
+      preLoaderRoute: typeof ApiPublicV1DocumentsIdRouteImport
+      parentRoute: typeof ApiPublicV1DocumentsRoute
     }
     '/api/public/v1/documents/$id/pdf': {
       id: '/api/public/v1/documents/$id/pdf'
       path: '/pdf'
       fullPath: '/api/public/v1/documents/$id/pdf'
       preLoaderRoute: typeof ApiPublicV1DocumentsIdPdfRouteImport
+      parentRoute: typeof ApiPublicV1DocumentsIdRoute
+    }
+    '/api/public/v1/documents/$id/verify': {
+      id: '/api/public/v1/documents/$id/verify'
+      path: '/verify'
+      fullPath: '/api/public/v1/documents/$id/verify'
+      preLoaderRoute: typeof ApiPublicV1DocumentsIdVerifyRouteImport
       parentRoute: typeof ApiPublicV1DocumentsIdRoute
     }
   }
