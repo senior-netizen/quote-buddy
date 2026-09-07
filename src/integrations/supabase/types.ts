@@ -58,6 +58,44 @@ export type Database = {
           },
         ]
       }
+      certificate_history: {
+        Row: {
+          certificate_id: string | null
+          created_at: string
+          device_id: string | null
+          event_payload: Json | null
+          event_type: string
+          id: string
+          org_id: string
+        }
+        Insert: {
+          certificate_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          event_payload?: Json | null
+          event_type: string
+          id?: string
+          org_id: string
+        }
+        Update: {
+          certificate_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          event_payload?: Json | null
+          event_type?: string
+          id?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificate_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -102,6 +140,251 @@ export type Database = {
           },
         ]
       }
+      device_certificates: {
+        Row: {
+          active: boolean
+          certificate_pem: string | null
+          certificate_serial_number: string | null
+          certificate_thumbprint: string | null
+          created_at: string
+          csr_pem: string | null
+          device_id: string | null
+          encrypted_payload: string | null
+          environment: string | null
+          fdms_device_id: string | null
+          fdms_response: Json | null
+          id: string
+          issued_by: string | null
+          key_id: string | null
+          org_id: string
+          thumbprint: string | null
+          valid_from: string | null
+          valid_to: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          active?: boolean
+          certificate_pem?: string | null
+          certificate_serial_number?: string | null
+          certificate_thumbprint?: string | null
+          created_at?: string
+          csr_pem?: string | null
+          device_id?: string | null
+          encrypted_payload?: string | null
+          environment?: string | null
+          fdms_device_id?: string | null
+          fdms_response?: Json | null
+          id?: string
+          issued_by?: string | null
+          key_id?: string | null
+          org_id: string
+          thumbprint?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          active?: boolean
+          certificate_pem?: string | null
+          certificate_serial_number?: string | null
+          certificate_thumbprint?: string | null
+          created_at?: string
+          csr_pem?: string | null
+          device_id?: string | null
+          encrypted_payload?: string | null
+          environment?: string | null
+          fdms_device_id?: string | null
+          fdms_response?: Json | null
+          id?: string
+          issued_by?: string | null
+          key_id?: string | null
+          org_id?: string
+          thumbprint?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_certificates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_configuration: {
+        Row: {
+          configuration: Json | null
+          created_at: string
+          device_id: string | null
+          environment: string | null
+          fdms_device_id: string | null
+          id: string
+          org_id: string
+          source: string
+        }
+        Insert: {
+          configuration?: Json | null
+          created_at?: string
+          device_id?: string | null
+          environment?: string | null
+          fdms_device_id?: string | null
+          id?: string
+          org_id: string
+          source?: string
+        }
+        Update: {
+          configuration?: Json | null
+          created_at?: string
+          device_id?: string | null
+          environment?: string | null
+          fdms_device_id?: string | null
+          id?: string
+          org_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_configuration_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_keys: {
+        Row: {
+          active: boolean
+          created_at: string
+          csr_fingerprint: string | null
+          csr_pem: string | null
+          device_id: string | null
+          encrypted_payload: string | null
+          encrypted_private_key_ref: string | null
+          id: string
+          key_algorithm: string | null
+          key_id: string | null
+          key_size: number | null
+          org_id: string
+          public_key_pem: string | null
+          thumbprint: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          csr_fingerprint?: string | null
+          csr_pem?: string | null
+          device_id?: string | null
+          encrypted_payload?: string | null
+          encrypted_private_key_ref?: string | null
+          id?: string
+          key_algorithm?: string | null
+          key_id?: string | null
+          key_size?: number | null
+          org_id: string
+          public_key_pem?: string | null
+          thumbprint?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          csr_fingerprint?: string | null
+          csr_pem?: string | null
+          device_id?: string | null
+          encrypted_payload?: string | null
+          encrypted_private_key_ref?: string | null
+          id?: string
+          key_algorithm?: string | null
+          key_id?: string | null
+          key_size?: number | null
+          org_id?: string
+          public_key_pem?: string | null
+          thumbprint?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devices: {
+        Row: {
+          activation_key: string | null
+          activation_key_encrypted: string | null
+          activation_key_hash: string | null
+          activation_key_secret_ref: string | null
+          active: boolean
+          created_at: string
+          device_model_name: string | null
+          device_model_version: string | null
+          device_serial_no: string | null
+          environment: string
+          fdms_device_id: string
+          id: string
+          org_id: string
+          registration_response: Json | null
+          taxpayer_tin: string | null
+          vat_number: string | null
+        }
+        Insert: {
+          activation_key?: string | null
+          activation_key_encrypted?: string | null
+          activation_key_hash?: string | null
+          activation_key_secret_ref?: string | null
+          active?: boolean
+          created_at?: string
+          device_model_name?: string | null
+          device_model_version?: string | null
+          device_serial_no?: string | null
+          environment?: string
+          fdms_device_id: string
+          id?: string
+          org_id: string
+          registration_response?: Json | null
+          taxpayer_tin?: string | null
+          vat_number?: string | null
+        }
+        Update: {
+          activation_key?: string | null
+          activation_key_encrypted?: string | null
+          activation_key_hash?: string | null
+          activation_key_secret_ref?: string | null
+          active?: boolean
+          created_at?: string
+          device_model_name?: string | null
+          device_model_version?: string | null
+          device_serial_no?: string | null
+          environment?: string
+          fdms_device_id?: string
+          id?: string
+          org_id?: string
+          registration_response?: Json | null
+          taxpayer_tin?: string | null
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           client_id: string
@@ -112,6 +395,7 @@ export type Database = {
           doc_type: string
           due_date: string | null
           fiscal_day_no: number | null
+          fiscal_device_id: string | null
           fiscal_error: string | null
           fiscal_response: Json | null
           fiscal_status: string
@@ -142,6 +426,7 @@ export type Database = {
           doc_type: string
           due_date?: string | null
           fiscal_day_no?: number | null
+          fiscal_device_id?: string | null
           fiscal_error?: string | null
           fiscal_response?: Json | null
           fiscal_status?: string
@@ -172,6 +457,7 @@ export type Database = {
           doc_type?: string
           due_date?: string | null
           fiscal_day_no?: number | null
+          fiscal_device_id?: string | null
           fiscal_error?: string | null
           fiscal_response?: Json | null
           fiscal_status?: string
@@ -267,10 +553,17 @@ export type Database = {
       organization_fiscal_config: {
         Row: {
           activation_key: string | null
+          activation_key_encrypted: string | null
+          activation_key_id: string | null
+          activation_key_secret_ref: string | null
           certificate_pem: string | null
+          certificate_secret_ref: string | null
           created_at: string
+          device_address: string | null
           device_id: string | null
           device_model: string | null
+          device_model_name: string | null
+          device_model_version: string | null
           device_operating_mode: string
           device_serial: string | null
           enabled: boolean
@@ -280,6 +573,7 @@ export type Database = {
           last_receipt_global_no: number
           org_id: string
           private_key_pem: string | null
+          private_key_secret_ref: string | null
           tax_payer_name: string | null
           tax_payer_tin: string | null
           trade_name: string | null
@@ -288,10 +582,17 @@ export type Database = {
         }
         Insert: {
           activation_key?: string | null
+          activation_key_encrypted?: string | null
+          activation_key_id?: string | null
+          activation_key_secret_ref?: string | null
           certificate_pem?: string | null
+          certificate_secret_ref?: string | null
           created_at?: string
+          device_address?: string | null
           device_id?: string | null
           device_model?: string | null
+          device_model_name?: string | null
+          device_model_version?: string | null
           device_operating_mode?: string
           device_serial?: string | null
           enabled?: boolean
@@ -301,6 +602,7 @@ export type Database = {
           last_receipt_global_no?: number
           org_id: string
           private_key_pem?: string | null
+          private_key_secret_ref?: string | null
           tax_payer_name?: string | null
           tax_payer_tin?: string | null
           trade_name?: string | null
@@ -309,10 +611,17 @@ export type Database = {
         }
         Update: {
           activation_key?: string | null
+          activation_key_encrypted?: string | null
+          activation_key_id?: string | null
+          activation_key_secret_ref?: string | null
           certificate_pem?: string | null
+          certificate_secret_ref?: string | null
           created_at?: string
+          device_address?: string | null
           device_id?: string | null
           device_model?: string | null
+          device_model_name?: string | null
+          device_model_version?: string | null
           device_operating_mode?: string
           device_serial?: string | null
           enabled?: boolean
@@ -322,6 +631,7 @@ export type Database = {
           last_receipt_global_no?: number
           org_id?: string
           private_key_pem?: string | null
+          private_key_secret_ref?: string | null
           tax_payer_name?: string | null
           tax_payer_tin?: string | null
           trade_name?: string | null
@@ -541,11 +851,156 @@ export type Database = {
           },
         ]
       }
+      receipt_history: {
+        Row: {
+          created_at: string
+          document_id: string
+          fiscal_day_no: number
+          id: string
+          invoice_no: string
+          org_id: string
+          receipt_counter: number
+          receipt_global_no: number
+          receipt_type: string
+          receipt_type_counter: number | null
+          status: string
+          submitted_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          fiscal_day_no: number
+          id?: string
+          invoice_no: string
+          org_id: string
+          receipt_counter: number
+          receipt_global_no: number
+          receipt_type?: string
+          receipt_type_counter?: number | null
+          status?: string
+          submitted_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          fiscal_day_no?: number
+          id?: string
+          invoice_no?: string
+          org_id?: string
+          receipt_counter?: number
+          receipt_global_no?: number
+          receipt_type?: string
+          receipt_type_counter?: number | null
+          status?: string
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_history_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: true
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipt_status: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          message: string | null
+          metadata: Json | null
+          org_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          org_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_status_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_status_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      current_receipt_status: {
+        Row: {
+          created_at: string | null
+          document_id: string | null
+          message: string | null
+          metadata: Json | null
+          org_id: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_status_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_status_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      allocate_fiscal_receipt_counters: {
+        Args: {
+          _document_id: string
+          _org_id: string
+          _receipt_type?: string
+          _requires_receipt_type_counter?: boolean
+        }
+        Returns: {
+          fiscal_day_no: number
+          invoice_no: string
+          receipt_counter: number
+          receipt_global_no: number
+          receipt_type_counter: number
+        }[]
+      }
       has_org_role: {
         Args: {
           _min_role: Database["public"]["Enums"]["app_role"]
