@@ -1,4 +1,3 @@
-import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 /// UIKit requires a non-empty popover anchor when presenting a share sheet.

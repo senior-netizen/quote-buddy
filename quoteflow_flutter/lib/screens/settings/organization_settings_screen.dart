@@ -2214,6 +2214,7 @@ class _OrganizationSettingsScreenState
             text: 'QuoteFlow backup data',
             sharePositionOrigin: shareOrigin(context),
           );
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Data exported successfully')),
           );
@@ -2241,6 +2242,7 @@ class _OrganizationSettingsScreenState
       final json = picked.bytes != null
           ? utf8.decode(picked.bytes!)
           : await File(picked.path!).readAsString();
+      if (!mounted) return;
       final backupService = BackupService(context.read<StorageService>());
       final importResult = await backupService.importFromJson(json);
 
