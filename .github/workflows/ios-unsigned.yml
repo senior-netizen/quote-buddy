@@ -1,0 +1,50 @@
+name: QuoteFlow unsigned iOS
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/mobile-bug-hunt-ios]
+    paths:
+      - quoteflow_flutter/**
+      - .github/workflows/ios-unsigned.yml
+permissions:
+  contents: read
+concurrency:
+  group: quoteflow-ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: quoteflow_flutter
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install verified Flutter SDK revision
+        run: |
+          git clone --depth 1 --branch 3.47.7 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter-sdk"
+          test "$(git -C "$RUNNER_TEMP/flutter-sdk" rev-parse HEAD)" = abaf9c523780a608bd46686fd5e53740a07077f8
+          echo "$RUNNER_TEMP/flutter-sdk/bin" >> "$GITHUB_PATH"
+      - name: Resolve dependencies
+        run: |
+          flutter --version
+          xcodebuild -version
+          flutter pub get --enforce-lockfile
+      - name: Validate iOS configuration
+        run: |
+          plutil -lint ios/Runner/Info.plist ios/Runner/Runner.entitlements
+          flutter test --no-pub test/mobile_backup_recovery_test.dart test/zimra_receipt_payload_test.dart test/billing_client_test.dart test/fdms_readiness_test.dart test/fiscal_pdf_test.dart
+      - name: Compile unsigned iOS release
+        run: flutter build ios --release --no-codesign --no-pub --dart-define-from-file=config/squirrellabs-billing.json
+      - name: Package unsigned application
+        run: |
+          mkdir -p build/ios-artifacts
+          ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app build/ios-artifacts/quoteflow-ios-unsigned.zip
+          shasum -a 256 build/ios-artifacts/quoteflow-ios-unsigned.zip > build/ios-artifacts/SHA256.txt
+          printf '%s\n' 'Unsigned iOS release. Apple signing and provisioning are required before installation on an iPhone or TestFlight distribution.' > build/ios-artifacts/README.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: quoteflow-ios-unsigned
+          path: quoteflow_flutter/build/ios-artifacts/
+          if-no-files-found: error
+          retention-days: 14
