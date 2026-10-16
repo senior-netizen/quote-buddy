@@ -1,0 +1,70 @@
+name: quoteflow
+description: "QuoteFlow — Quotations & Invoices (Offline-First)"
+publish_to: 'none'
+version: 1.1.0
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Local offline storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # PDF generation
+  pdf: ^3.11.3
+  printing: ^5.13.4
+
+  # QR codes for verification
+  qr_flutter: ^4.1.0
+  qr: 3.0.2
+
+  # State management
+  provider: ^6.1.2
+
+  # Utilities
+  uuid: ^4.5.1
+  url_launcher: ^6.3.3
+  intl: ^0.20.1
+  path_provider: ^2.1.5
+  image_picker: ^1.1.2
+  shared_preferences: ^2.3.4
+
+  # Crypto for document verification
+  crypto: ^3.0.6
+
+  # ECDSA P-256 for ZIMRA FDMS receipt signing
+  pointycastle: ^3.9.1
+  basic_utils: ^5.6.7
+
+  # Charts
+  fl_chart: ^0.69.2
+
+  # Swipe-to-delete
+  flutter_slidable: ^3.1.1
+
+  # App lock (biometric/PIN)
+  local_auth: ^2.3.0
+
+  # Share files
+  share_plus: ^10.1.4
+
+  # File picker for import
+  file_picker: ^8.1.7
+  connectivity_plus: ^7.3.1
+  flutter_secure_storage: 10.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  path_provider_platform_interface: ^2.1.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/branding/quoteflow-logo.png
